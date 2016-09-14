@@ -1,25 +1,16 @@
 #!/usr/bin/env python
-"""
-Command line arguments '-a' look in all IPTS
-                       '-c' look in the current IPTS
-                       '--IPTS=xxxx' look in the specified IPTS
-             '--scan= 10000-12000, 13000-14000' look in these scan number ranges
-                    '--sample="MT capillary"' look for this sample
-"""
+
 
 import numpy as np
-#from numpy import array,ones
 
 from os import listdir,getcwd
 import xml.etree.ElementTree as ET
 import sys
-#from optparse import OptionParser
 import argparse 
 from h5py import File
 import pdb
-pydir = '/SNS/users/zjn/pytest'
 
-# deal with command line options
+# command line options
 
 usage="Make a python analog to readtitles"
 
@@ -28,26 +19,47 @@ parser.add_argument("-a", "--all", default=False, dest="all", action="store_true
                   help="look in all accessible IPTS")
 parser.add_argument("-c", "--current", default=False, dest="current", action="store_true",
                   help="look in the current IPTS")
+parser.add_argument("-H", "--home", default="/SNS/NOM/", type=str,
+                    help="Home directory of instrument that contains IPTSs." )
 parser.add_argument("-I", "--IPTS", dest="ipts",
                   help="look in the specified IPTS")
 parser.add_argument("-s", "--scans", default='0-99999',dest="scans",nargs='*',
-                  help="look in the specified scan Nr (usage: -s 55555 19000-19005 ")
+                  help="look in the specified scan #'s (usage: -s 55555 19000-19005 ")
 parser.add_argument("-S", "--Sample",dest="sample",
-                  help="look for the specified Samples")
+                  help="look for the specified Samples (not yet implemented...)")
 parser.add_argument("-f", "--file", dest="file",default='los.txt',
                   help="output filename", metavar="FILE")
 parser.add_argument("-n", "--nexus", dest="nexus",default='False',
                   help="read the run information from NeXuS", metavar="FILE")
-parser.add_argument("-P", "--pydir", dest="pydir",default='/SNS/users/zjn/pytest',
+parser.add_argument("-P", "--pydir", dest="pydir",default='./',
                   help="""Allows manual configuration of the directory 
                   where NOMpy resides""")
 
 options = parser.parse_args()
-print options
 pydir=options.pydir
 sys.path.append(pydir)
 from NOMpy import *
 
+def printError(message):
+    print
+    print "*------------------------------------------------------------------*"
+    print "ERROR:", message
+    print "*------------------------------------------------------------------*"
+    print 
+
+def error(message):
+    printError(message)
+    sys.exit()
+
+def errorWithUsage(message):
+    printError(message)
+    print parser.print_help()
+    sys.exit()
+
+def checkCurrent( checkCurrent, checkAll ):
+    if checkCurrent and checkAll:
+        errorWithUsage("current (-c) and all (-a) both selected. Choose one.")
+        
 
 def findacipts(NOMhome):
     from os.path import abspath,lexists
@@ -83,23 +95,11 @@ def findscans(inipts):
   
 #-----------------------interpret command line options -------------------------
 
-#options.current=str2bool(options.current)
-#options.all=str2bool(options.all)
 filename=options.file
 nexus=str2bool(options.nexus)
 
-if not options.current and not options.all:
-    print "Current or all must be selected. Using current as default"
-    print "Continue with current:True and all:False"
-    options.current=True
-    options.all=False
-    
+checkCurrent(options.current, options.all)
 
-if options.current and options.all:
-    print "Current and all can't be true at the same time"
-    print "Continue with current:True and all:False"
-    options.all=False
-    
 ipts=[]
 if  options.current:
 # try to find the current IPTS from the current directory string
