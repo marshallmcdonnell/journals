@@ -10,8 +10,14 @@ import argparse
 from h5py import File
 import pdb
 
+from error_handler import *
+from scans         import * 
+
 # command line options
 
+def pair(arg):
+    return [str(x) for x in arg.split('-')]
+  
 usage="Make a python analog to readtitles"
 
 parser = argparse.ArgumentParser(description=usage )
@@ -25,12 +31,13 @@ parser.add_argument("-I", "--IPTS", dest="ipts", nargs='*',
                   help="look in the specified IPTS")
 parser.add_argument("-s", "--scans", default='0-99999',dest="scans",nargs='*',
                   help="look in the specified scan #'s (usage: -s 55555 19000-19005 ")
-parser.add_argument("-S", "--Sample",dest="sample",
-                  help="look for the specified Samples (not yet implemented...)")
+parser.add_argument("-S", "--samples", default=None, dest="sample",
+                  help="look for the specified Samples ")
+parser.add_argument("-d", "--dates",  dest="dates", 
+                  type=pair, action='append',
+                  help="look by specified date ranges (usage: -d <startDate>-<stopDate> w/ format: MM/YYYY or MM/DD/YYYY")
 parser.add_argument("-f", "--file", dest="file",default='los.txt',
                   help="output filename", metavar="FILE")
-parser.add_argument("-n", "--nexus", dest="nexus",default='False',
-                  help="read the run information from NeXuS", metavar="FILE")
 parser.add_argument("-P", "--pydir", dest="pydir",default='./',
                   help="""Allows manual configuration of the directory 
                   where NOMpy resides""")
@@ -39,35 +46,6 @@ options = parser.parse_args()
 pydir=options.pydir
 sys.path.append(pydir)
 from NOMpy import *
-
-
-def printWarning(message):
-    print
-    print "*------------------------------------------------------------------*"
-    print "WARNING:", message
-    print "*------------------------------------------------------------------*"
-    print 
-    
-
-def printError(message):
-    print
-    print "*------------------------------------------------------------------*"
-    print "ERROR:", message
-    print "*------------------------------------------------------------------*"
-    print 
-
-def error(message):
-    printError(message)
-    sys.exit()
-
-def errorWithUsage(message):
-    printError(message)
-    print parser.print_help()
-    sys.exit()
-
-def checkCurrent( checkCurrent, checkAll ):
-    if checkCurrent and checkAll:
-        errorWithUsage("current (-c) and all (-a) both selected. Choose one.")
 
 def getCurrentIPTS(ipts):
     # try to find the current IPTS from the current directory string
@@ -83,117 +61,6 @@ def getCurrentIPTS(ipts):
             ipts.append(currentdir[foundipts+5:])
     return ipts
 
-class dasGroup(object):
-    def __init__(self):
-        self.average_value = None
-        self.average_value_error = None
-        self.max_value = None
-        self.min_value = None
-        self.times      = None
-        self.values     = None
-
-    def getDAS(self, nx, string):
-        self.average_value =  nx[string]['average_value'][0]
-        self.average_value_error =  nx[string]['average_value_error'][0]
-        self.max_value =  nx[string]['maximum_value'][0]
-        self.min_value =  nx[string]['minimum_value'][0]
-        self.times =  nx[string]['time'][:]
-        self.values =  nx[string]['value'][:]
-        
-
-    def printTemp(self):
-        try:
-            return self.average_value + " +- ", self.average_value_error
-        except:
-            return
-
-class Sample(object):
-    def __init__(self):
-        self.name = None
-        self.mass = None 
-        self.chemical_formula = None
-        self.nature = None
-    
-class Container(object):
-    def __init__(self):
-        self.type = None
-        self.id   = None
-
-class User(object):
-    def __init__(self):
-        self.facility_user_id = None
-        self.firstname = None
-        self.lastname = None    
-
-class DateTime(object):
-    def __init__(self):
-        self.year = None
-        self.month = None
-        self.day = None
-        self.hour = None
-        self.minute = None
-        self.second = None
-
-    def getDateTime(self, string):
-        date, time = string.split('T')
-        self.year, self.month, self.day = date.split('-')
-        self.hour, self.minute, self.second = time.split(':')
-        return
-
-    def printDateTime(self):
-        return self.month + "/" + self.day + "/" + self.year + \
-               " at " + self.hour + ":" + self.minute + ":" + self.second
-    
- 
-class Scan( object ):
-    def __init__(self, iptsID=None, scanID=None ):
-        self.iptsID       = iptsID
-        self.scanID       = scanID
-        self.start_time   = DateTime()
-        self.end_time     = DateTime()
-        self.title        = None
-        self.beamlineID   = None
-        self.beamlineName = None
-        self.proton_charge = None
-        self.total_pulses = None
-
-        self.sample      = Sample()
-        self.container   = Container()
-        self.temp        = {} 
-        self.temp['sample'] = dasGroup()
-        self.temp['cryostream'] = {}
-        self.temp['cryostream']['target'] = dasGroup()
-        self.temp['cryostream']['actual'] = dasGroup()
-        self.temp['cryostream']['temp'] = dasGroup()
-        self.chopper     = {} 
-        self.proton_charge_das = dasGroup()
-        self.freq        = dasGroup()
-
-    def printScanInfo(self):
-        print
-        print "IPTS:", self.iptsID, "Scan #:", self.scanID, "Scan Title:", self.title
-        print 
-        print "Sample:", self.sample.name
-        print "    with Mass:", self.sample.mass,
-        print "         Chemical Formula:", self.sample.chemical_formula
-        print "         Form:", self.sample.nature
-        print
-        print "Began on:", self.start_time.printDateTime()
-        print "Ended on:", self.start_time.printDateTime()
-        print
-        print "Beamline:", self.beamlineName, self.beamlineID
-        print "Proton charge:", self.proton_charge
-        print "Total pulses:", self.total_pulses
-        print
-        print "Container:", self.container.type, self.container.id
-        print
-        print "Sample temp. (K):", self.temp['sample'].printTemp()
-        print "Cryo       actual temp. (K):", self.temp['cryostream']['actual'].printTemp()
-        print "Cryostream target temp. (K):", self.temp['cryostream']['target'].printTemp()
-        print "Cryostream temp. (K):", self.temp['cryostream']['temp'].printTemp()
-        # ... need to add more but really for debugging 
-        
-
 def getAllIPTS(root):
     from os.path import abspath,lexists
 # find all accessible IPTS
@@ -206,7 +73,7 @@ def createScans( iptsList ):
     from os import listdir
     import pdb
 
-    scans={}
+    scans=[]
     for ipts in iptsList:
 
         path=options.root+'IPTS-'+str(ipts)
@@ -239,10 +106,16 @@ def createScans( iptsList ):
                 if '/entry/sample/container_name' in nx:
                     s.container.type = str(nx['/entry/sample/container_name'][0])
                 
+                s.temp['sample'] = dasGroup()
                 s.temp['sample'].getDAS(nx,'/entry/DASlogs/BL1B:SE:SampleTemp')
+                s.temp['cryostream'] = {}
+                s.temp['cryostream']['target'] = dasGroup()
+                s.temp['cryostream']['actual'] = dasGroup()
+                s.temp['cryostream']['temp'] = dasGroup()
                 s.temp['cryostream']['actual'].getDAS(nx,'/entry/DASlogs/BL1B:SE:Cryo:TempActual')
                 s.temp['cryostream']['target'].getDAS(nx,'/entry/DASlogs/BL1B:SE:Cryostream:TARGETTEMP')
                 s.temp['cryostream']['temp'].getDAS(nx,'/entry/DASlogs/BL1B:SE:Cryostream:TEMP')
+
                 s.proton_charge_das.getDAS(nx,'/entry/DASlogs/proton_charge')
                 if '/entry/DASlogs/chopper1_TDC' in nx:
                     s.chopper['1'] = dasGroup()
@@ -255,7 +128,7 @@ def createScans( iptsList ):
                     s.chopper['3'].getDAS(nx,'/entry/DASlogs/chopper3_TDC')
                 s.freq.getDAS(nx,'/entry/DASlogs/frequency')
 
-                scans[scan] = s
+                scans.append(scan)
 
             #ENDFOR
 
@@ -301,6 +174,7 @@ def createScans( iptsList ):
                         s.chopper['3'] = dasGroup()
                         s.chopper['3'].getDAS(nx,'/entry/DASlogs/ChopperStatus3')
                     s.freq.getDAS(nx,'/entry/DASlogs/frequency')
+                    scans.append(scan)
                
 
             #ENDFOR
@@ -314,36 +188,9 @@ def createScans( iptsList ):
 
     return scans
 
-        
-
-def findscans(inipts, begin=4, end=9):
-    from os import listdir
-    import pdb
-
-    allexp=[]
-    whichipts=[]
-    c=[]
-    for ipts in inipts:
-        try:
-            c=listdir(options.root+'IPTS-'+ipts+'/0')
-            allexp.extend(c)
-            whichipts.extend([ipts]*len(c))
-        except OSError:
-            c=c
-       
-        try:
-            c=listdir(options.root+'IPTS-'+ipts+'/nexus')
-            c=[int(f[begin:end]) for f in c]
-            allexp.extend(c)
-            whichipts.extend([ipts]*len(c))
-        except OSError:
-            c=c
-    return allexp,whichipts
-  
 #---interpret command line options---
 
 filename=options.file
-nexus=str2bool(options.nexus)
 
 # check conflict of searching in current directory or all directories
 checkCurrent(options.current, options.all)
@@ -368,32 +215,27 @@ ipts = [ x for x in ipts if x in ipts_all ]
 
 # FUTURE - would add parallelism here for search over IPTS
 
-#---create Scan lists---
+#---create Scans list based on IPTS #'s---
 scans = createScans( ipts )
-#ipts_scans=findscans(ipts)                            # Using input ipts #'s, returns the scans found (ipts_scans[0] ) and the associated ipts(ipts_scans[1])
+
+#---filter the list---
+
+print options.dates
+if options.dates:
+    for start, stop in options.dates:
+        a, b = getDateRange(start, stop )
+    scans.filterOnDate( options.date )
+
+
+if options.scans:
+    scans.filterOnScans( options.scans )
+
+
+if options.samples:
+    scans.filterOnSample( options.sample )
+
 
 '''
-scanranges=interranges(options.scans)                 # returns scans based on the user range(s) specified (i.e. for 555, 997-999, returns [555, 997,998,999]
-ascans=np.array([int(arg) for arg in ipts_scans[0]])  # nexus #'s / scan #'s
-aipts=np.array([int(arg) for arg in ipts_scans[1]])   # IPTS #'s
-
-mask=np.ones(len(ipts_scans[0]))== 0.                 # Initialize mask for scans to False for comparing if scans within range specified
-
-for i in xrange(0,len(scanranges)):
-    try:
-        mask=(mask | (ascans == scanranges[i])) # does a BitWise-Or (|) operator comparing
-                                                # if the mask == True and the ascans is a scanrange
-    except IndexError:
-        pass
-
-
-#print ascans[mask],aipts[mask]
-#raise Exception("STOP")
-
-# these are the scans to use for searching over
-scan_final=ascans[mask]
-scan_final=sorted(scan_final)
-
 f = open(filename, 'w')
 fcsv = open('los.csv','w')
 f.write("#Scan IPTS  time   starttime         PP's     PC/C          title\n")
