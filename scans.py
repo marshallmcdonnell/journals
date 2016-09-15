@@ -50,6 +50,32 @@ class DateTime(object):
         return self.month + "/" + self.day + "/" + self.year + \
                " at " + self.hour + ":" + self.minute + ":" + self.second
 
+    def isLessThan( self, upper ):
+        if self.year < upper.year:
+            return True
+        if self.year == upper.year:
+            if self.month < upper.month:
+                return True
+            if self.month == upper.month:
+                if self.day <= upper.day:
+                    return True
+        return False 
+
+    def isGreaterThan( self, lower ):
+        if lower.year < self.year:
+            return True
+        if lower.year == self.year:
+            if lower.month < self.month:
+                return True
+            if lower.month == self.month:
+                if lower.day <= self.day:
+                    return True
+        return False 
+
+
+    def isDateInRange(self, dateRange):
+        begin, end = dateRange
+        return (self.isGreaterThan(begin) and self.isLessThan(end) )
 
 def getDateRange(start, stop):
     startDate = DateTime()
@@ -71,14 +97,13 @@ def getDateRange(start, stop):
 
     # check that start date < stop date
     if startDate.year > stopDate.year:
-        error("For dates, stop date occurs before start date.")
+        error("For dates, stop date year occurs before start date year.")
     elif startDate.year == stopDate.year:
         if startDate.month > stopDate.month:
-            error("For dates, stop date occurs before start date.")
+            error("For dates, stop date occurs month before start date month.")
         elif startDate.month == stopDate.month:
-            error("For dates, stop date occurs before start date.")
-            if startDate.day > stopDate.month:
-                error("For dates, stop date occurs before start date.")
+            if startDate.day > stopDate.day:
+                error("For dates, stop date day occurs before start date day.")
 
     return [startDate, stopDate]
 
@@ -120,7 +145,22 @@ class Scan( object ):
         self.proton_charge_das = dasGroup()
         self.freq        = dasGroup()
 
-    def printScanInfo(self):
+    def printScanTitle(self):
+        return "IPTS-",self.iptsID, self.scanID, "Title:", self.title
+
+    def printScanDate(self):
+        print "IPTS-",self.iptsID, self.scanID, \
+              "Start:", self.start_time.month, "-", self.start_time.day, "-", self.start_time.year, \
+              "Stop:",  self.end_time.month,   "-", self.end_time.day,   "-", self.end_time.year 
+
+    def printScanSample(self):
+        print "IPTS-",int(self.iptsID), self.scanID, \
+              "Sample:", self.sample.name,      \
+              "Mass:", self.sample.mass,        \
+              "Formula:", self.sample.chemical_formula, \
+              "Form:", self.sample.nature
+
+    def printScanInfoLong(self):
         print
         print "IPTS:", self.iptsID, "Scan #:", self.scanID, "Scan Title:", self.title
         print 
@@ -143,6 +183,29 @@ class Scan( object ):
         print "Cryostream target temp. (K):", self.temp['cryostream']['target'].printTemp()
         print "Cryostream temp. (K):", self.temp['cryostream']['temp'].printTemp()
         # ... need to add more but really for debugging 
-        
 
+def filterOnDate( scans, dateRanges ):
 
+    newscans = []
+
+    for scan in scans:
+        added = False
+        for dateRange in dateRanges:
+            if scan.start_time.isDateInRange( dateRange ) and not added:
+                newscans.append( scan )
+                added = True
+    return newscans
+
+def filterOnScans( scans, scanRanges ):
+    newscans = []
+    for scan in scans:
+        if int(scan.scanID) in scanRanges:
+            newscans.append(scan)
+    return newscans
+
+def filterOnSamples( scans, samples ):
+    newscans = []
+    for scan in scans:
+        if scan.sample.name in samples:
+            newscans.append(scan)    
+    return newscans

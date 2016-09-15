@@ -21,26 +21,28 @@ def pair(arg):
 usage="Make a python analog to readtitles"
 
 parser = argparse.ArgumentParser(description=usage )
-parser.add_argument("-a", "--all", default=False, dest="all", action="store_true",
+parser.add_argument("-a", "--all", default=False, action="store_true",
                   help="look in all accessible IPTS")
-parser.add_argument("-c", "--current", default=False, dest="current", action="store_true",
+parser.add_argument("-c", "--current", default=False, action="store_true",
                   help="look in the current IPTS")
 parser.add_argument("-R", "--root", default="/SNS/NOM/", type=str,
                     help="Root directory of instrument that contains IPTSs." )
 parser.add_argument("-I", "--IPTS", dest="ipts", nargs='*',
                   help="look in the specified IPTS")
-parser.add_argument("-s", "--scans", default='0-99999',dest="scans",nargs='*',
+parser.add_argument("-s", "--scans", default=None,nargs='*',
                   help="look in the specified scan #'s (usage: -s 55555 19000-19005 ")
-parser.add_argument("-S", "--samples", default=None, dest="sample",
+parser.add_argument("-S", "--samples", default=None,nargs='*', 
                   help="look for the specified Samples ")
 parser.add_argument("-d", "--dates",  dest="dates", 
                   type=pair, action='append',
                   help="look by specified date ranges (usage: -d <startDate>-<stopDate> w/ format: MM/YYYY or MM/DD/YYYY")
-parser.add_argument("-f", "--file", dest="file",default='los.txt',
+parser.add_argument("-f", "--file", default='los.txt',
                   help="output filename", metavar="FILE")
-parser.add_argument("-P", "--pydir", dest="pydir",default='./',
+parser.add_argument("-P", "--pydir", default='./',
                   help="""Allows manual configuration of the directory 
                   where NOMpy resides""")
+parser.add_argument("-v", "--verbose", action='store_true',
+                  help="Will print out helpful messages. May flood stdout with info (mainly, for debugging.) ")
 
 options = parser.parse_args()
 pydir=options.pydir
@@ -69,6 +71,33 @@ def getAllIPTS(root):
     alliptsnr=[int((arg[5:])) for arg in c if arg[:5] == 'IPTS-']
     return alliptsnr
 
+def getNumScansForIPTS( ipts ):
+    from os import listdir
+    import pdb
+
+    path=options.root+'IPTS-'+str(ipts)
+    if os.path.isdir(path+'/nexus'):
+        scanList=listdir(path+'/nexus')
+        return len(scanList)
+
+    elif os.path.isdir(path+'/0'):
+        scanList=listdir(path+'/0')
+        return len(scanList)
+
+    else:
+        return 0
+
+def printFoundIPTSinfo( ipts ):
+    total = 0
+    for x in ipts:
+        nscans =  getNumScansForIPTS( x )
+        print "     ", x, "w/", nscans, "# of scans"
+        total += nscans
+    print "Total # of scans:", total 
+    print
+
+
+
 def createScans( iptsList ):
     from os import listdir
     import pdb
@@ -85,6 +114,8 @@ def createScans( iptsList ):
             scanList=listdir(path+'/nexus')
 
             for NeXusFile in sorted(scanList):
+
+                # FUTURE - multi-thread this part of code
 
                 scan = int(re.search(r'\d+', NeXusFile).group())
                 s = Scan(iptsID=ipts, scanID=scan)
@@ -128,7 +159,7 @@ def createScans( iptsList ):
                     s.chopper['3'].getDAS(nx,'/entry/DASlogs/chopper3_TDC')
                 s.freq.getDAS(nx,'/entry/DASlogs/frequency')
 
-                scans.append(scan)
+                scans.append(s)
 
             #ENDFOR
 
@@ -174,7 +205,7 @@ def createScans( iptsList ):
                         s.chopper['3'] = dasGroup()
                         s.chopper['3'].getDAS(nx,'/entry/DASlogs/ChopperStatus3')
                     s.freq.getDAS(nx,'/entry/DASlogs/frequency')
-                    scans.append(scan)
+                    scans.append(s)
                
 
             #ENDFOR
@@ -213,7 +244,16 @@ if options.all:
 ipts_all = getAllIPTS(options.root)
 ipts = [ x for x in ipts if x in ipts_all ]
 
-# FUTURE - would add parallelism here for search over IPTS
+#---print helpful ipts, scans message---
+if options.verbose:
+    print "I found these IPTS #'s:"
+    printFoundIPTSinfo( ipts )
+
+
+# FUTURE - add core parallelism here for scan id search
+#        - would require a scanID, iptsID pair to then
+#          use in createScans for each core. 
+#        - would add thread parallelism inside createScans
 
 #---create Scans list based on IPTS #'s---
 scans = createScans( ipts )
@@ -222,19 +262,35 @@ scans = createScans( ipts )
 
 print options.dates
 if options.dates:
+    dateRanges = []
     for start, stop in options.dates:
         a, b = getDateRange(start, stop )
-    scans.filterOnDate( options.date )
+        dateRanges.append( [a, b] )
+        
+    scans = filterOnDate( scans,  dateRanges )
 
+
+for scan in scans:
+    scan.printScanDate()
+print options.dates
 
 if options.scans:
-    scans.filterOnScans( options.scans )
+    scanRanges = interranges(options.scans)
+    scans = filterOnScans( scans, scanRanges )
 
+
+for scan in scans:
+    scan.printScanSample()
+print options.scans
 
 if options.samples:
-    scans.filterOnSample( options.sample )
+    scans = filterOnSamples( scans, options.samples )
 
+for scan in scans:
+    scan.printScanSample()
+print options.samples
 
+error("Stop")
 '''
 f = open(filename, 'w')
 fcsv = open('los.csv','w')
