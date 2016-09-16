@@ -11,7 +11,11 @@ from h5py import File
 import pdb
 
 from error_handler import *
-from scans         import * 
+from scans         import *
+
+sys.path.append('/opt/Mantid/bin')
+
+from mantid.simpleapi import LoadEventNeXus 
 
 # command line options
 
