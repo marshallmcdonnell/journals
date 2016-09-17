@@ -4,6 +4,7 @@ from os import listdir,getcwd
 import sys, re
 from h5py import File
 import pdb
+from datetime import datetime
 
 from error_handler import *
 
@@ -15,14 +16,31 @@ class dasGroup(object):
         self.min_value = None
         self.times      = None
         self.values     = None
+        self.sum        = None
 
-    def getDAS(self, nx, string):
+    def getDAS(self, run ):
+        self.time_average =  run.timeAverageValue()
+        self.times = [ DateTime(x) for x in str(run.times) ]
+        self.values
+
+        stats = run.getStatistics()
+        self.duration  = stats.duration
+        self.mean  = stats.mean
+        self.median  = stats.median
+        self.maximum  = stats.maximum
+        self.minimum  = stats.minimum
+        self.standard_deviation  = stats.standard_deviation
+
+    '''
+    def getDAS(self, run ):
         self.average_value =  nx[string]['average_value'][0]
         self.average_value_error =  nx[string]['average_value_error'][0]
         self.max_value =  nx[string]['maximum_value'][0]
         self.min_value =  nx[string]['minimum_value'][0]
         self.times =  nx[string]['time'][:]
         self.values =  nx[string]['value'][:]
+        self.sum = sum(self.values)
+    '''
         
 
     def printTemp(self):
@@ -32,78 +50,52 @@ class dasGroup(object):
             return
 
 class DateTime(object):
-    def __init__(self):
-        self.year = None
-        self.month = None
-        self.day = None
-        self.hour = None
-        self.minute = None
-        self.second = None
+    def __init__(self, datetime=None):
+        self.datetime = None
+        
+        if datetime:
+            self.datetime = datetime
 
     def getDateTime(self, string):
         date, time = string.split('T')
-        self.year, self.month, self.day = date.split('-')
-        self.hour, self.minute, self.second = time.split(':')
+        year, month, day = [ int(x) for x in date.split('-') ]
+        hour, minute, second = [ int(float(x)) for x in time.split(':') ]
+        self.datetime = datetime( year, month, day, hour=hour, minute=minute, second=second )
         return
 
     def printDateTime(self):
         return self.month + "/" + self.day + "/" + self.year + \
                " at " + self.hour + ":" + self.minute + ":" + self.second
 
-    def isLessThan( self, upper ):
-        if self.year < upper.year:
-            return True
-        if self.year == upper.year:
-            if self.month < upper.month:
-                return True
-            if self.month == upper.month:
-                if self.day <= upper.day:
-                    return True
-        return False 
-
-    def isGreaterThan( self, lower ):
-        if lower.year < self.year:
-            return True
-        if lower.year == self.year:
-            if lower.month < self.month:
-                return True
-            if lower.month == self.month:
-                if lower.day <= self.day:
-                    return True
-        return False 
-
-
     def isDateInRange(self, dateRange):
         begin, end = dateRange
-        return (self.isGreaterThan(begin) and self.isLessThan(end) )
+        return (self >= begin and self <= end) 
 
 def getDateRange(start, stop):
     startDate = DateTime()
     stopDate  = DateTime()
 
     if len(start.split('/')) == 2:
-        startDate.month, startDate.year = start.split('/')
+        month, year = start.split('/')
+        startDate = datetime.datetime( year, month, 1 )
     elif len(start.split('/')) == 3:
-        startDate.month, startDate.day, startDate.year = start.split('/')
+        month, day, year = start.split('/')
+        startDate = datetime.datetime( year, month, day )
     else:
         error("Incorrect start date format. Either MM/YYYY or MM/DD/YYYY")
     
     if len(stop.split('/')) == 2:
-        stopDate.month, stopDate.year = stop.split('/')
+        month, year = stop.split('/')
+        stopDate = datetime.datetime( year, month, 1 )
     elif len(stop.split('/')) == 3:
-        stopDate.month, stopDate.day, stopDate.year = stop.split('/')
+        month, day, year = stop.split('/')
+        stopDate = datetime.datetime( year, month, day )
     else:
         error("Incorrect stop date format. Either MM/YYYY or MM/DD/YYYY")
 
     # check that start date < stop date
-    if startDate.year > stopDate.year:
-        error("For dates, stop date year occurs before start date year.")
-    elif startDate.year == stopDate.year:
-        if startDate.month > stopDate.month:
-            error("For dates, stop date occurs month before start date month.")
-        elif startDate.month == stopDate.month:
-            if startDate.day > stopDate.day:
-                error("For dates, stop date day occurs before start date day.")
+    if startDate > stopDate:
+        error("For dates, stop date occurs before start date year.")
 
     return [startDate, stopDate]
 
@@ -133,17 +125,16 @@ class Scan( object ):
         self.start_time   = DateTime()
         self.end_time     = DateTime()
         self.title        = None
-        self.beamlineID   = None
         self.beamlineName = None
-        self.proton_charge = None
         self.total_pulses = None
+        self.proton_charge = None
 
         self.sample      = Sample()
         self.container   = Container()
         self.temp        = {} 
         self.chopper     = {} 
-        self.proton_charge_das = dasGroup()
         self.freq        = dasGroup()
+        self.proton_charge = dasGroup()
 
     def printScanTitle(self):
         return "IPTS-",self.iptsID, self.scanID, "Title:", self.title
@@ -172,7 +163,7 @@ class Scan( object ):
         print "Began on:", self.start_time.printDateTime()
         print "Ended on:", self.start_time.printDateTime()
         print
-        print "Beamline:", self.beamlineName, self.beamlineID
+        print "Beamline:", self.beamlineName
         print "Proton charge:", self.proton_charge
         print "Total pulses:", self.total_pulses
         print

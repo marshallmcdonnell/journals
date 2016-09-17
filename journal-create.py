@@ -15,7 +15,7 @@ from scans         import *
 
 sys.path.append('/opt/Mantid/bin')
 
-from mantid.simpleapi import LoadEventNeXus 
+from mantid.simpleapi import LoadEventNexus 
 
 # command line options
 
@@ -123,13 +123,17 @@ def createScans( iptsList ):
 
                 scan = int(re.search(r'\d+', NeXusFile).group())
                 s = Scan(iptsID=ipts, scanID=scan)
-                nx=File(path+'/nexus/'+NeXusFile,'r')
-                
-                s.start_time.getDateTime(str(nx['/entry/start_time'][0])[0:19])
-                s.end_time.getDateTime(str(nx['/entry/end_time'][0])[0:19])
-                s.title = str(nx['/entry/title'][0])
-                s.beamlineID = str(nx['/entry/instrument/beamline'][0])
-                s.beamlineName = str(nx['/entry/instrument/name'][0])
+
+                nx = LoadEventNexus(path+'/nexus/'+NeXusFile,MetaDataOnly=True)
+                run = nx.getRun()
+
+                s.start_time.getDateTime(run['start_time'].value)
+                s.end_time.getDateTime(run['end_time'].value)
+                s.title = nx.getTitle()
+                s.beamlineName = nx.getInstrument().getName()
+                s.proton_charge.getDAS(run['proton_charge'])
+                error('stop')
+
                 s.proton_charge = float(nx['/entry/proton_charge'][0])
                 s.total_pulses = int(nx['/entry/total_pulses'][0])
                 s.sample.name = str(nx['/entry/sample/name'][0])
@@ -188,7 +192,6 @@ def createScans( iptsList ):
                     s.start_time.getDateTime(str(nx['/entry/start_time'][0])[0:19])
                     s.end_time.getDateTime(str(nx['/entry/end_time'][0])[0:19])
                     s.title = str(nx['/entry/title'][0])
-                    s.beamlineID = str(nx['/entry/instrument/beamline'][0])
                     s.beamlineName = str(nx['/entry/instrument/name'][0])
                     s.proton_charge = float(nx['/entry/proton_charge'][0])
                     s.total_pulses = int(nx['/entry/total_pulses'][0])
