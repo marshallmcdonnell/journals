@@ -132,10 +132,9 @@ def createScans( iptsList ):
                 s.title = nx.getTitle()
                 s.beamlineName = nx.getInstrument().getName()
                 s.proton_charge.getDAS(run['proton_charge'])
+                s.total_pulses = len(s.proton_charge.values)
                 error('stop')
 
-                s.proton_charge = float(nx['/entry/proton_charge'][0])
-                s.total_pulses = int(nx['/entry/total_pulses'][0])
                 s.sample.name = str(nx['/entry/sample/name'][0])
                 s.sample.mass = str(nx['/entry/sample/mass'][0])
                 s.sample.chemical_formula = str(nx['/entry/sample/chemical_formula'][0])

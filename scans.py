@@ -21,7 +21,7 @@ class dasGroup(object):
     def getDAS(self, run ):
         self.time_average =  run.timeAverageValue()
         self.times = [ DateTime(x) for x in str(run.times) ]
-        self.values
+        self.values = run.value
 
         stats = run.getStatistics()
         self.duration  = stats.duration
