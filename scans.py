@@ -20,7 +20,8 @@ class dasGroup(object):
 
     def getDAS(self, run ):
         self.time_average =  run.timeAverageValue()
-        self.times = [ DateTime(x) for x in str(run.times) ]
+        #self.times = [ DateTime(x) for x in str(run.times) ]
+        self.times = [ x for x in str(run.times) ]
         self.values = run.value
 
         stats = run.getStatistics()
@@ -30,18 +31,6 @@ class dasGroup(object):
         self.maximum  = stats.maximum
         self.minimum  = stats.minimum
         self.standard_deviation  = stats.standard_deviation
-
-    '''
-    def getDAS(self, run ):
-        self.average_value =  nx[string]['average_value'][0]
-        self.average_value_error =  nx[string]['average_value_error'][0]
-        self.max_value =  nx[string]['maximum_value'][0]
-        self.min_value =  nx[string]['minimum_value'][0]
-        self.times =  nx[string]['time'][:]
-        self.values =  nx[string]['value'][:]
-        self.sum = sum(self.values)
-    '''
-        
 
     def printTemp(self):
         try:
@@ -64,8 +53,12 @@ class DateTime(object):
         return
 
     def printDateTime(self):
-        return self.month + "/" + self.day + "/" + self.year + \
-               " at " + self.hour + ":" + self.minute + ":" + self.second
+        return   str(self.datetime.month)  + "/" \
+               + str(self.datetime.day)    + "/" \
+               + str(self.datetime.year)   + " at " \
+               + str(self.datetime.hour)   + ":" \
+               + str(self.datetime.minute) + ":" \
+               + str(self.datetime.second)
 
     def isDateInRange(self, dateRange):
         begin, end = dateRange
@@ -104,13 +97,37 @@ class Sample(object):
         self.name = None
         self.mass = None 
         self.chemical_formula = None
-        self.nature = None
+        self.description = None
+
+    def getSampleFromItems(self,run, items=None):
+        if items==None:
+            error("Items object passed to getSampleFromItems is None.")
+
+        for x in items:
+            if 'Name' in x:
+                self.name = run[x].value[0]
+            if 'Mass' in x:
+                self.mass = run[x].value[0]
+            if 'Formula' in x:
+                self.chemical_formula = run[x].value[0]
+            if 'Description' in x:
+                self.description = run[x].value[0]
+        return
     
 class Container(object):
     def __init__(self):
         self.type = None
         self.id   = None
 
+    def getContainerFromItems(self, run, items=None):
+        if items==None:
+            error("Items object passed to getContainerFromItems is None.")
+
+        for x in items:
+            if 'Container' in x:
+                self.type = run[x].value
+        return
+ 
 class User(object):
     def __init__(self):
         self.facility_user_id = None
@@ -141,15 +158,15 @@ class Scan( object ):
 
     def printScanDate(self):
         print "IPTS-",self.iptsID, self.scanID, \
-              "Start:", self.start_time.month, "-", self.start_time.day, "-", self.start_time.year, \
-              "Stop:",  self.end_time.month,   "-", self.end_time.day,   "-", self.end_time.year 
+              "Began on:", self.start_time.printDateTime(), \
+              "Ended on:", self.end_time.printDateTime()
 
     def printScanSample(self):
         print "IPTS-",int(self.iptsID), self.scanID, \
               "Sample:", self.sample.name,      \
               "Mass:", self.sample.mass,        \
               "Formula:", self.sample.chemical_formula, \
-              "Form:", self.sample.nature
+              "Form:", self.sample.description
 
     def printScanInfoLong(self):
         print
@@ -161,7 +178,7 @@ class Scan( object ):
         print "         Form:", self.sample.nature
         print
         print "Began on:", self.start_time.printDateTime()
-        print "Ended on:", self.start_time.printDateTime()
+        print "Ended on:", self.end_time.printDateTime()
         print
         print "Beamline:", self.beamlineName
         print "Proton charge:", self.proton_charge
@@ -174,6 +191,46 @@ class Scan( object ):
         print "Cryostream target temp. (K):", self.temp['cryostream']['target'].printTemp()
         print "Cryostream temp. (K):", self.temp['cryostream']['temp'].printTemp()
         # ... need to add more but really for debugging 
+
+    def getTemps(self, run, temps):
+        self.temp['sample'] = {}
+        self.temp['cryo'] = {}
+        self.temp['cyrostream'] = {}
+
+        if temps == None:
+            error("Temps object passed to getTemps is None.")
+
+        for x in temps:
+
+            if 'SampleTemp' in x:
+                self.temp['sample'] = dasGroup()
+                self.temp['sample'].getDAS(run[x])
+
+            if 'Cryo' in x:
+                if 'TempAcutal' in x:
+                    self.temp['cryo']['actual'] = dasGroup()
+                    self.temp['cryo']['actual'].getDAS(run[x])
+
+            if 'Cryostream' in x:
+                if 'TARGETTEMP' in x:
+                    self.temp['cryostream']['target'] = dasGroup()
+                    self.temp['cryostream']['target'].getDAS(run[x])
+                elif 'TEMP' in x:
+                    self.temp['cryostream']['temp'] = dasGroup()
+                    self.temp['cryostream']['temp'].getDAS(run[x])
+                
+        return
+
+    def getChoppers( self, run, choppers ):
+        if choppers == None:
+            error("Choppers object passed to getChoppers is None.")
+
+        for x in choppers:
+            chopperIndex = re.search(r'chopper(\d+)_', x).group(1)
+            self.chopper[chopperIndex] = dasGroup()
+            self.chopper[chopperIndex].getDAS( run[x] )
+
+        return
 
 def filterOnDate( scans, dateRanges ):
 
@@ -189,9 +246,18 @@ def filterOnDate( scans, dateRanges ):
 
 def filterOnScans( scans, scanRanges ):
     newscans = []
-    for scan in scans:
-        if int(scan.scanID) in scanRanges:
-            newscans.append(scan)
+
+    if isinstance(scans, list):
+        for scanName in scans:
+            scan = int(re.search(r'\d+', scanName).group())
+            if scan in scanRanges:
+                newscans.append(scanName)
+
+    else: 
+        for scan in scans:
+            if int(scan.scanID) in scanRanges:
+                newscans.append(scan)
+
     return newscans
 
 def filterOnSamples( scans, samples ):

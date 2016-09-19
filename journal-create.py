@@ -7,7 +7,7 @@ from os import listdir,getcwd
 import xml.etree.ElementTree as ET
 import sys, re
 import argparse 
-from h5py import File
+import datetime
 import pdb
 
 from error_handler import *
@@ -18,6 +18,45 @@ sys.path.append('/opt/Mantid/bin')
 from mantid.simpleapi import LoadEventNexus 
 
 # command line options
+
+def benchTime( start, stop ):
+    time = stop - start
+    print time.seconds, "seconds",time.microseconds,"microseconds"
+    return time
+
+def parseInt(number):
+    try:
+        return int(number)
+    except ValueError, e:
+        logging.info("Invalid run numbers: %s" % str(e))
+
+    return 0
+
+
+def procNumbers(numberList):
+    # simply see if it is an integer
+    try:
+        return [int(numberList)]
+    except ValueError and TypeError:
+        pass
+
+    # split on commas
+    result = []
+    for item in numberList:
+        # if there is a dash then it is a range
+        if "-" in item:
+            item = [parseInt(i) for i in item.split("-")]
+            item.sort()
+            if item[0]:
+                result.extend(range(item[0], item[1]+1))
+        else:
+            item = parseInt(item)
+            if item:
+                result.append(item)
+
+    result.sort()
+    return result
+
 
 def pair(arg):
     return [str(x) for x in arg.split('-')]
@@ -42,16 +81,10 @@ parser.add_argument("-d", "--dates",  dest="dates",
                   help="look by specified date ranges (usage: -d <startDate>-<stopDate> w/ format: MM/YYYY or MM/DD/YYYY")
 parser.add_argument("-f", "--file", default='los.txt',
                   help="output filename", metavar="FILE")
-parser.add_argument("-P", "--pydir", default='./',
-                  help="""Allows manual configuration of the directory 
-                  where NOMpy resides""")
 parser.add_argument("-v", "--verbose", action='store_true',
                   help="Will print out helpful messages. May flood stdout with info (mainly, for debugging.) ")
 
 options = parser.parse_args()
-pydir=options.pydir
-sys.path.append(pydir)
-from NOMpy import *
 
 def getCurrentIPTS(ipts):
     # try to find the current IPTS from the current directory string
@@ -77,14 +110,15 @@ def getAllIPTS(root):
 
 def getNumScansForIPTS( ipts ):
     from os import listdir
+    from os.path import isdir
     import pdb
 
     path=options.root+'IPTS-'+str(ipts)
-    if os.path.isdir(path+'/nexus'):
+    if isdir(path+'/nexus'):
         scanList=listdir(path+'/nexus')
         return len(scanList)
 
-    elif os.path.isdir(path+'/0'):
+    elif isdir(path+'/0'):
         scanList=listdir(path+'/0')
         return len(scanList)
 
@@ -103,7 +137,7 @@ def printFoundIPTSinfo( ipts ):
 
 
 def createScans( iptsList ):
-    from os import listdir
+    import os
     import pdb
 
     scans=[]
@@ -115,7 +149,12 @@ def createScans( iptsList ):
 
         if os.path.isdir(path+'/nexus'):
 
-            scanList=listdir(path+'/nexus')
+            scanList=os.listdir(path+'/nexus')
+
+            if options.scans:
+                print "filtering on scans"
+                scanRanges = procNumbers(options.scans)
+                scanList = filterOnScans( scanList, scanRanges )
 
             for NeXusFile in sorted(scanList):
 
@@ -125,46 +164,67 @@ def createScans( iptsList ):
                 s = Scan(iptsID=ipts, scanID=scan)
 
                 nx = LoadEventNexus(path+'/nexus/'+NeXusFile,MetaDataOnly=True)
+                print "Loaded file"
                 run = nx.getRun()
+
+                print "getting times",
+                start = datetime.now()
 
                 s.start_time.getDateTime(run['start_time'].value)
                 s.end_time.getDateTime(run['end_time'].value)
                 s.title = nx.getTitle()
                 s.beamlineName = nx.getInstrument().getName()
+
+                stop = datetime.now()
+                timeDelta = benchTime( start, stop )
+
+                print "getting proton_info",
+                start = datetime.now()
+
                 s.proton_charge.getDAS(run['proton_charge'])
                 s.total_pulses = len(s.proton_charge.values)
-                error('stop')
 
-                s.sample.name = str(nx['/entry/sample/name'][0])
-                s.sample.mass = str(nx['/entry/sample/mass'][0])
-                s.sample.chemical_formula = str(nx['/entry/sample/chemical_formula'][0])
-                s.sample.nature = str(nx['/entry/sample/nature'][0])
-                if '/entry/sample/container_id' in nx:
-                    s.container.id   = str(nx['/entry/sample/container_id'][0])
-                if '/entry/sample/container_name' in nx:
-                    s.container.type = str(nx['/entry/sample/container_name'][0])
-                
-                s.temp['sample'] = dasGroup()
-                s.temp['sample'].getDAS(nx,'/entry/DASlogs/BL1B:SE:SampleTemp')
-                s.temp['cryostream'] = {}
-                s.temp['cryostream']['target'] = dasGroup()
-                s.temp['cryostream']['actual'] = dasGroup()
-                s.temp['cryostream']['temp'] = dasGroup()
-                s.temp['cryostream']['actual'].getDAS(nx,'/entry/DASlogs/BL1B:SE:Cryo:TempActual')
-                s.temp['cryostream']['target'].getDAS(nx,'/entry/DASlogs/BL1B:SE:Cryostream:TARGETTEMP')
-                s.temp['cryostream']['temp'].getDAS(nx,'/entry/DASlogs/BL1B:SE:Cryostream:TEMP')
+                stop = datetime.now()
+                timeDelta = benchTime( start, stop )
 
-                s.proton_charge_das.getDAS(nx,'/entry/DASlogs/proton_charge')
-                if '/entry/DASlogs/chopper1_TDC' in nx:
-                    s.chopper['1'] = dasGroup()
-                    s.chopper['1'].getDAS(nx,'/entry/DASlogs/chopper1_TDC')
-                if '/entry/DASlogs/chopper2_TDC' in nx:
-                    s.chopper['2'] = dasGroup()
-                    s.chopper['2'].getDAS(nx,'/entry/DASlogs/chopper2_TDC')
-                if '/entry/DASlogs/chopper3_TDC' in nx:
-                    s.chopper['3'] = dasGroup()
-                    s.chopper['3'].getDAS(nx,'/entry/DASlogs/chopper3_TDC')
-                s.freq.getDAS(nx,'/entry/DASlogs/frequency')
+                print "getting frequency",
+                start = datetime.now()
+
+                s.freq.getDAS(run['frequency'])
+
+                stop = datetime.now()
+                timeDelta = benchTime( start, stop )
+
+                print "getting items",
+                start = datetime.now()
+
+                items = [x for x in run.keys() if 'ITEMS' in x]
+                if items:
+                    s.sample.getSampleFromItems(run, items)
+                    s.container.getContainerFromItems(run, items)
+               
+                stop = datetime.now()
+                timeDelta = benchTime( start, stop )
+
+                print "getting temps",
+                start = datetime.now()
+
+                temps = [x for x in run.keys() if ('Temp' or 'TEMP') in x]
+                if temps:
+                    s.getTemps(run,temps)
+
+                stop = datetime.now()
+                timeDelta = benchTime( start, stop )
+
+                print "getting choppers",
+                start = datetime.now()
+
+                choppers = [x for x in run.keys() if 'chopper' in x]
+                if choppers:
+                    s.getChoppers(run, choppers)
+
+                stop = datetime.now()
+                timeDelta = benchTime( start, stop )
 
                 scans.append(s)
 
@@ -174,7 +234,11 @@ def createScans( iptsList ):
 
         elif os.path.isdir(path+'/0'):
 
-            scanList=listdir(path+'/0')
+            scanList=os.listdir(path+'/0')
+
+            if options.scans:
+                scanRanges = procNumbers(options.scans)
+                scanList = filterOnScans( scanList, scanRanges )
 
             for scan in scanList:
 
@@ -240,7 +304,7 @@ if  options.current:
     ipts = getCurrentIPTS(ipts)
     
 if options.ipts:
-    iptsranges=interranges( options.ipts)  # returns a list of ipts based on the range(s) specified (i.e. for 555, 997-999, returns [555, 997,998,999]
+    iptsranges=procNumbers( options.ipts) 
     ipts = ipts + iptsranges
 
 if options.all:
@@ -262,12 +326,14 @@ if options.verbose:
 #        - would add thread parallelism inside createScans
 
 #---create Scans list based on IPTS #'s---
+print options.scans
+print procNumbers(options.scans)
 scans = createScans( ipts )
 
 #---filter the list---
 
-print options.dates
 if options.dates:
+    print "filtering on dates"
     dateRanges = []
     for start, stop in options.dates:
         a, b = getDateRange(start, stop )
@@ -278,24 +344,15 @@ if options.dates:
 
 for scan in scans:
     scan.printScanDate()
-print options.dates
-
-if options.scans:
-    scanRanges = interranges(options.scans)
-    scans = filterOnScans( scans, scanRanges )
-
-
-for scan in scans:
-    scan.printScanSample()
-print options.scans
 
 if options.samples:
+    print "filtering on samples"
     scans = filterOnSamples( scans, options.samples )
 
 for scan in scans:
     scan.printScanSample()
-print options.samples
 
+#---output the list---
 error("Stop")
 '''
 f = open(filename, 'w')
