@@ -53,12 +53,13 @@ class DateTime(object):
         return
 
     def printDateTime(self):
-        return   str(self.datetime.month)  + "/" \
-               + str(self.datetime.day)    + "/" \
-               + str(self.datetime.year)   + " at " \
-               + str(self.datetime.hour)   + ":" \
-               + str(self.datetime.minute) + ":" \
-               + str(self.datetime.second)
+        return '%(mnth) 02d/%(d)02d/%(y)4d at %(h)02d:%(min)02d:%(s)02d' % \
+               { 'mnth': self.datetime.month, \
+                 'd':    self.datetime.day, \
+                 'y':    self.datetime.year, \
+                 'h':    self.datetime.hour, \
+                 'min':  self.datetime.minute, \
+                 's':    self.datetime.second }
 
     def isDateInRange(self, dateRange):
         begin, end = dateRange
@@ -135,6 +136,11 @@ class User(object):
         self.lastname = None    
 
 
+def benchTime( start, stop ):
+    time = stop - start
+    print time.seconds, "seconds",time.microseconds,"microseconds"
+    return time
+
 class Scan( object ):
     def __init__(self, iptsID=None, scanID=None ):
         self.iptsID       = iptsID
@@ -195,7 +201,7 @@ class Scan( object ):
     def getTemps(self, run, temps):
         self.temp['sample'] = {}
         self.temp['cryo'] = {}
-        self.temp['cyrostream'] = {}
+        self.temp['cryostream'] = {}
 
         if temps == None:
             error("Temps object passed to getTemps is None.")
@@ -226,9 +232,112 @@ class Scan( object ):
             error("Choppers object passed to getChoppers is None.")
 
         for x in choppers:
-            chopperIndex = re.search(r'chopper(\d+)_', x).group(1)
-            self.chopper[chopperIndex] = dasGroup()
-            self.chopper[chopperIndex].getDAS( run[x] )
+            if 'chopper' in x:
+                chopperIndex = re.search(r'chopper(\d+)_', x).group(1)
+                self.chopper[chopperIndex] = dasGroup()
+                self.chopper[chopperIndex].getDAS( run[x] )
+            elif 'ChopperStatus' in x:
+                chopperIndex = re.search(r'ChopperStatus(\d+)', x).group(1)
+                self.chopper[chopperIndex] = dasGroup()
+                self.chopper[chopperIndex].getDAS( run[x] )
+    
+
+        return
+
+    def extractNexusData(self, nx, benchmark=False):
+
+        if benchmark:
+            print "Loaded file"
+
+        run = nx.getRun()
+
+        # Times, title, and beamline
+
+        if benchmark:
+            print "getting times",
+            start = datetime.now()
+
+        self.start_time.getDateTime(run['start_time'].value)
+        self.end_time.getDateTime(run['end_time'].value)
+        self.title = nx.getTitle()
+        self.beamlineName = nx.getInstrument().getName()
+
+        if benchmark:
+            stop = datetime.now()
+            timeDelta = benchTime( start, stop )
+        
+        # Proton charge  information
+
+        if benchmark:
+            print "getting proton_info",
+            start = datetime.now()
+
+        self.proton_charge.getDAS(run['proton_charge'])
+        self.total_pulses = len(self.proton_charge.values)
+
+        if benchmark:
+            stop = datetime.now()
+            timeDelta = benchTime( start, stop )
+
+        # Frequency  information
+
+        if benchmark:
+            print "getting frequency",
+            start = datetime.now()
+
+        self.freq.getDAS(run['frequency'])
+
+        if benchmark:
+            stop = datetime.now()
+            timeDelta = benchTime( start, stop )
+
+        # Sample information
+
+        if benchmark:
+            print "getting items",
+            start = datetime.now()
+
+        items = [x for x in run.keys() if 'ITEMS' in x]
+
+        print run.keys()
+        print items
+        if items:
+            self.sample.getSampleFromItems(run, items)
+            self.container.getContainerFromItems(run, items)
+       
+        if benchmark:
+            stop = datetime.now()
+            timeDelta = benchTime( start, stop )
+
+        # Temperature information
+
+        if benchmark:
+            print "getting temps",
+            start = datetime.now()
+
+        temps = [x for x in run.keys() if any( s in x for s in ('Temp','TEMP'))]
+        print temps
+        if temps:
+            self.getTemps(run,temps)
+
+        if benchmark:
+            stop = datetime.now()
+            timeDelta = benchTime( start, stop )
+
+        # Chopper information
+
+        if benchmark:
+            print "getting choppers",
+            start = datetime.now()
+
+        choppers = [x for x in run.keys() if any( s in x for s in ('chopper', 'Chopper'))]
+        print choppers
+        if choppers:
+            self.getChoppers(run, choppers)
+
+        if benchmark:
+            stop = datetime.now()
+            timeDelta = benchTime( start, stop )
 
         return
 
@@ -266,3 +375,4 @@ def filterOnSamples( scans, samples ):
         if scan.sample.name in samples:
             newscans.append(scan)    
     return newscans
+

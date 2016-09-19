@@ -19,11 +19,6 @@ from mantid.simpleapi import LoadEventNexus
 
 # command line options
 
-def benchTime( start, stop ):
-    time = stop - start
-    print time.seconds, "seconds",time.microseconds,"microseconds"
-    return time
-
 def parseInt(number):
     try:
         return int(number)
@@ -164,68 +159,7 @@ def createScans( iptsList ):
                 s = Scan(iptsID=ipts, scanID=scan)
 
                 nx = LoadEventNexus(path+'/nexus/'+NeXusFile,MetaDataOnly=True)
-                print "Loaded file"
-                run = nx.getRun()
-
-                print "getting times",
-                start = datetime.now()
-
-                s.start_time.getDateTime(run['start_time'].value)
-                s.end_time.getDateTime(run['end_time'].value)
-                s.title = nx.getTitle()
-                s.beamlineName = nx.getInstrument().getName()
-
-                stop = datetime.now()
-                timeDelta = benchTime( start, stop )
-
-                print "getting proton_info",
-                start = datetime.now()
-
-                s.proton_charge.getDAS(run['proton_charge'])
-                s.total_pulses = len(s.proton_charge.values)
-
-                stop = datetime.now()
-                timeDelta = benchTime( start, stop )
-
-                print "getting frequency",
-                start = datetime.now()
-
-                s.freq.getDAS(run['frequency'])
-
-                stop = datetime.now()
-                timeDelta = benchTime( start, stop )
-
-                print "getting items",
-                start = datetime.now()
-
-                items = [x for x in run.keys() if 'ITEMS' in x]
-                if items:
-                    s.sample.getSampleFromItems(run, items)
-                    s.container.getContainerFromItems(run, items)
-               
-                stop = datetime.now()
-                timeDelta = benchTime( start, stop )
-
-                print "getting temps",
-                start = datetime.now()
-
-                temps = [x for x in run.keys() if ('Temp' or 'TEMP') in x]
-                if temps:
-                    s.getTemps(run,temps)
-
-                stop = datetime.now()
-                timeDelta = benchTime( start, stop )
-
-                print "getting choppers",
-                start = datetime.now()
-
-                choppers = [x for x in run.keys() if 'chopper' in x]
-                if choppers:
-                    s.getChoppers(run, choppers)
-
-                stop = datetime.now()
-                timeDelta = benchTime( start, stop )
-
+                s.extractNexusData( nx, benchmark=False)
                 scans.append(s)
 
             #ENDFOR
@@ -250,33 +184,10 @@ def createScans( iptsList ):
                 else:    
                 
                     s = Scan(iptsID=ipts, scanID=scan)
-                    nx=File(path+'/0/'+scan+'/NeXus/'+NeXusFile,'r')
-                
-                    s.start_time.getDateTime(str(nx['/entry/start_time'][0])[0:19])
-                    s.end_time.getDateTime(str(nx['/entry/end_time'][0])[0:19])
-                    s.title = str(nx['/entry/title'][0])
-                    s.beamlineName = str(nx['/entry/instrument/name'][0])
-                    s.proton_charge = float(nx['/entry/proton_charge'][0])
-                    s.total_pulses = int(nx['/entry/total_pulses'][0])
-                    s.sample.name = str(nx['/entry/sample/name'][0])
-                    s.sample.mass = str(nx['/entry/sample/mass'][0])
-                    s.sample.chemical_formula = str(nx['/entry/sample/chemical_formula'][0])
-                    s.sample.nature = str(nx['/entry/sample/nature'][0])
-                    s.container.type = str(nx['/entry/sample/container_identifier'][0])
-                    s.container.id = str(nx['/entry/sample/container_identifier'][0])
-                    s.proton_charge_das.getDAS(nx,'/entry/DASlogs/proton_charge')
-                    if '/entry/DASlogs/ChopperStatus1' in nx:
-                        s.chopper['1'] = dasGroup()
-                        s.chopper['1'].getDAS(nx,'/entry/DASlogs/ChopperStatus1')
-                    if '/entry/DASlogs/ChopperStatus2' in nx:
-                        s.chopper['2'] = dasGroup()
-                        s.chopper['2'].getDAS(nx,'/entry/DASlogs/ChopperStatus2')
-                    if '/entry/DASlogs/ChopperStatus3' in nx:
-                        s.chopper['3'] = dasGroup()
-                        s.chopper['3'].getDAS(nx,'/entry/DASlogs/ChopperStatus3')
-                    s.freq.getDAS(nx,'/entry/DASlogs/frequency')
+
+                    nx = LoadEventNexus(path+'/0/'+scan+'/NeXus/'+NeXusFile,MetaDataOnly=True)
+                    s.extractNexusData( nx, benchmark=False )
                     scans.append(s)
-               
 
             #ENDFOR
             
