@@ -17,7 +17,8 @@ sys.path.append('/opt/Mantid/bin')
 
 from mantid.simpleapi import LoadEventNexus 
 
-# command line options
+def pair(arg):
+    return [str(x) for x in arg.split('-')]
 
 def parseInt(number):
     try:
@@ -26,7 +27,6 @@ def parseInt(number):
         logging.info("Invalid run numbers: %s" % str(e))
 
     return 0
-
 
 def procNumbers(numberList):
     # simply see if it is an integer
@@ -52,35 +52,6 @@ def procNumbers(numberList):
     result.sort()
     return result
 
-
-def pair(arg):
-    return [str(x) for x in arg.split('-')]
-  
-usage="Make a python analog to readtitles"
-
-parser = argparse.ArgumentParser(description=usage )
-parser.add_argument("-a", "--all", default=False, action="store_true",
-                  help="look in all accessible IPTS")
-parser.add_argument("-c", "--current", default=False, action="store_true",
-                  help="look in the current IPTS")
-parser.add_argument("-R", "--root", default="/SNS/NOM/", type=str,
-                    help="Root directory of instrument that contains IPTSs." )
-parser.add_argument("-I", "--IPTS", dest="ipts", nargs='*',
-                  help="look in the specified IPTS")
-parser.add_argument("-s", "--scans", default=None,nargs='*',
-                  help="look in the specified scan #'s (usage: -s 55555 19000-19005 ")
-parser.add_argument("-S", "--samples", default=None,nargs='*', 
-                  help="look for the specified Samples ")
-parser.add_argument("-d", "--dates",  dest="dates", 
-                  type=pair, action='append',
-                  help="look by specified date ranges (usage: -d <startDate>-<stopDate> w/ format: MM/YYYY or MM/DD/YYYY")
-parser.add_argument("-f", "--file", default='los.txt',
-                  help="output filename", metavar="FILE")
-parser.add_argument("-v", "--verbose", action='store_true',
-                  help="Will print out helpful messages. May flood stdout with info (mainly, for debugging.) ")
-
-options = parser.parse_args()
-
 def getCurrentIPTS(ipts):
     # try to find the current IPTS from the current directory string
     currentdir=getcwd()
@@ -97,18 +68,18 @@ def getCurrentIPTS(ipts):
 
 def getAllIPTS(root):
     from os.path import abspath,lexists
-# find all accessible IPTS
+    # find all accessible IPTS
     c=listdir(root)
     allipts=[arg for arg in c if arg[:5] == 'IPTS-']
     alliptsnr=[int((arg[5:])) for arg in c if arg[:5] == 'IPTS-']
     return alliptsnr
 
-def getNumScansForIPTS( ipts ):
+def getNumScansForIPTS( ipts, root ):
     from os import listdir
     from os.path import isdir
     import pdb
 
-    path=options.root+'IPTS-'+str(ipts)
+    path=root+'IPTS-'+str(ipts)
     if isdir(path+'/nexus'):
         scanList=listdir(path+'/nexus')
         return len(scanList)
@@ -120,10 +91,10 @@ def getNumScansForIPTS( ipts ):
     else:
         return 0
 
-def printFoundIPTSinfo( ipts ):
+def printFoundIPTSinfo( ipts, root ):
     total = 0
     for x in ipts:
-        nscans =  getNumScansForIPTS( x )
+        nscans =  getNumScansForIPTS( x, root )
         print "     ", x, "w/", nscans, "# of scans"
         total += nscans
     print "Total # of scans:", total 
@@ -131,14 +102,14 @@ def printFoundIPTSinfo( ipts ):
 
 
 
-def createScans( iptsList ):
+def createScans( iptsList, root, scansFilter ):
     import os
     import pdb
 
     scans=[]
     for ipts in iptsList:
 
-        path=options.root+'IPTS-'+str(ipts)
+        path=root+'IPTS-'+str(ipts)
 
         # . NeXus directory
 
@@ -146,9 +117,9 @@ def createScans( iptsList ):
 
             scanList=os.listdir(path+'/nexus')
 
-            if options.scans:
+            if scansFilter:
                 print "filtering on scans"
-                scanRanges = procNumbers(options.scans)
+                scanRanges = procNumbers(scansFilter)
                 scanList = filterOnScans( scanList, scanRanges )
 
             for NeXusFile in sorted(scanList):
@@ -171,8 +142,8 @@ def createScans( iptsList ):
 
             scanList=os.listdir(path+'/0')
 
-            if options.scans:
-                scanRanges = procNumbers(options.scans)
+            if scansFilter:
+                scanRanges = procNumbers(scansFilter)
                 scanList = filterOnScans( scanList, scanRanges )
 
             for scan in sorted(scanList):
@@ -202,70 +173,106 @@ def createScans( iptsList ):
 
     return scans
 
-#---interpret command line options---
 
-filename=options.file
+#---Main Driver Function---
 
-# check conflict of searching in current directory or all directories
-checkCurrent(options.current, options.all)
+def createJournal( options ):
 
+    #---create IPTS lists---
 
-#---create IPTS lists---
-
-ipts=[]
-if  options.current:
-    ipts = getCurrentIPTS(ipts)
+    ipts=[]
+    if  options.current:
+        ipts = getCurrentIPTS(ipts)
     
-if options.ipts:
-    iptsranges=procNumbers( options.ipts) 
-    ipts = ipts + iptsranges
+    if options.ipts:
+        iptsranges=procNumbers( options.ipts) 
+        ipts = ipts + iptsranges
 
-if options.all:
-    ipts=getAllIPTS(options.root)
+    if options.all:
+        ipts=getAllIPTS(options.root)
 
-#---get intersection of User Input IPTS list and list of all acutal IPTS---
-ipts_all = getAllIPTS(options.root)
-ipts = [ x for x in ipts if x in ipts_all ]
+    #---get intersection of User Input IPTS list and list of all acutal IPTS---
+    ipts_all = getAllIPTS(options.root)
+    ipts = [ x for x in ipts if x in ipts_all ]
 
-#---print helpful ipts, scans message---
-if options.verbose:
-    print "I found these IPTS #'s:"
-    printFoundIPTSinfo( ipts )
+    #---print helpful ipts, scans message---
+    if options.verbose:
+        print "I found these IPTS #'s:"
+        printFoundIPTSinfo( ipts, options.root )
 
 
-# FUTURE - add core parallelism here for scan id search
-#        - would require a scanID, iptsID pair to then
-#          use in createScans for each core. 
-#        - would add thread parallelism inside createScans
+    # FUTURE - add core parallelism here for scan id search
+    #        - would require a scanID, iptsID pair to then
+    #          use in createScans for each core. 
+    #        - would add thread parallelism inside createScans
 
-#---create Scans list based on IPTS #'s---
-scans = createScans( ipts )
+    #---create Scans list based on IPTS #'s---
+    scans = createScans( ipts, options.root, options.scans )
 
-#---filter the list---
+    #---filter the list---
 
-if options.dates:
-    print "filtering on dates"
-    dateRanges = []
-    for start, stop in options.dates:
-        a, b = getDateRange(start, stop )
-        dateRanges.append( [a, b] )
+    if options.dates:
+        print "filtering on dates"
+        dateRanges = []
+        for start, stop in options.dates:
+            a, b = getDateRange(start, stop )
+            dateRanges.append( [a, b] )
         
-    scans = filterOnDate( scans,  dateRanges )
+        scans = filterOnDate( scans,  dateRanges )
 
 
-for scan in scans:
-    scan.printScanDate()
+    for scan in scans:
+        scan.printScanDate()
 
-if options.samples:
-    print "filtering on samples"
-    scans = filterOnSamples( scans, options.samples )
+    if options.samples:
+        print "filtering on samples"
+        scans = filterOnSamples( scans, options.samples )
 
-for scan in scans:
-    scan.printScanSample()
+    for scan in scans:
+        scan.printScanSample()
 
-#---output the list---
+    #---output the list---
 
-fields = ['title', 'iptsID', 'scanID']
-df = pd.DataFrame( [ {key: getattr( scan, key) for key in fields} for scan in scans] )
-print df.head()
-error("Stop")
+    fields = ['title', 'iptsID', 'scanID']
+    df = pd.DataFrame( [ {key: getattr( scan, key) for key in fields} for scan in scans] )
+    print df.head()
+    error("Stop")
+
+if __name__ == '__main__':
+
+    #---interpret command line options---
+  
+    usage="Make a python analog to readtitles"
+    parser = argparse.ArgumentParser(description=usage )
+    parser.add_argument("-a", "--all", default=False, action="store_true",
+                      help="look in all accessible IPTS")
+    parser.add_argument("-c", "--current", default=False, action="store_true",
+                      help="look in the current IPTS")
+    parser.add_argument("-R", "--root", default="/SNS/NOM/", type=str,
+                        help="Root directory of instrument that contains IPTSs." )
+    parser.add_argument("-I", "--IPTS", dest="ipts", nargs='*',
+                      help="look in the specified IPTS")
+    parser.add_argument("-s", "--scans", default=None,nargs='*',
+                      help="look in the specified scan #'s (usage: -s 55555 19000-19005 ")
+    parser.add_argument("-S", "--samples", default=None,nargs='*', 
+                      help="look for the specified Samples ")
+    parser.add_argument("-d", "--dates",  dest="dates", 
+                      type=pair, action='append',
+                      help="look by specified date ranges " + 
+                           "(usage: -d <startDate>-<stopDate> w/ format: " + 
+                           "MM/YYYY or MM/DD/YYYY")
+    parser.add_argument("-f", "--file", default='los.txt',
+                      help="output filename", metavar="FILE")
+    parser.add_argument("-v", "--verbose", action='store_true',
+                      help="Will print out helpful messages. May flood stdout with " + 
+                           "info (mainly, for debugging.) ")
+
+    options = parser.parse_args()
+
+    filename=options.file
+
+    # check conflict of searching in current directory or all directories
+    checkCurrent(options.current, options.all)
+
+    createJournal( options )
+
