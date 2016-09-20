@@ -2,9 +2,9 @@
 
 
 import numpy as np
+import pandas as pd
 
 from os import listdir,getcwd
-import xml.etree.ElementTree as ET
 import sys, re
 import argparse 
 import datetime
@@ -158,6 +158,7 @@ def createScans( iptsList ):
                 scan = int(re.search(r'\d+', NeXusFile).group())
                 s = Scan(iptsID=ipts, scanID=scan)
 
+                print "File:", NeXusFile
                 nx = LoadEventNexus(path+'/nexus/'+NeXusFile,MetaDataOnly=True)
                 s.extractNexusData( nx, benchmark=False)
                 scans.append(s)
@@ -174,10 +175,11 @@ def createScans( iptsList ):
                 scanRanges = procNumbers(options.scans)
                 scanList = filterOnScans( scanList, scanRanges )
 
-            for scan in scanList:
+            for scan in sorted(scanList):
 
                 NeXusFile='NOM_'+scan+'_event.nxs'
 
+                print "File:", NeXusFile
                 if not os.path.exists(path+'/0/'+scan+'/NeXus/'+NeXusFile):
                     printWarning("Did not find NeXus file: "+NeXusFile+" in "+\
                                  "IPTS-"+str(ipts)+" with Scan ID:"+scan)
@@ -237,8 +239,6 @@ if options.verbose:
 #        - would add thread parallelism inside createScans
 
 #---create Scans list based on IPTS #'s---
-print options.scans
-print procNumbers(options.scans)
 scans = createScans( ipts )
 
 #---filter the list---
@@ -264,82 +264,8 @@ for scan in scans:
     scan.printScanSample()
 
 #---output the list---
+
+fields = ['title', 'iptsID', 'scanID']
+df = pd.DataFrame( [ {key: getattr( scan, key) for key in fields} for scan in scans] )
+print df.head()
 error("Stop")
-'''
-f = open(filename, 'w')
-fcsv = open('los.csv','w')
-f.write("#Scan IPTS  time   starttime         PP's     PC/C          title\n")
-fcsv.write("#Scan , IPTS ,  time ,  starttime    ,     PP's  ,   PC/pC   ,       title\n")
-
-
-for i,currentexp in enumerate(scan_final):
-    iptsnr=str(aipts[mask][i])
-    scannr=str(currentexp)
-
-    preNeXusname='/SNS/NOM/IPTS-'+ iptsnr + '/0/' + scannr 
-    preNeXusname+='/preNeXus/NOM_' + scannr +'_runinfo.xml'
-
-    Starttime='Not found'
-    preNeXusstat = True
-    try:
-        f1=open(preNeXusname,'r')
-        for line in f1.readlines():
-            a=line.find('<AcceleratorPulses>')
-            if a >0:
-                o=line.find('</AcceleratorPulses>')
-                AccelP=line[a+len('<AcceleratorPulses>'):o]
-            a=line.find('<PCurrent units="pC">')
-            if a >0:
-                o=line.find('</PCurrent>')
-                Pchar=line[a+len('<PCurrent units="pC">'):o]
-            a=line.find('<Title>')
-            if a >0:
-                o=line.find('</Title>')
-                Exptitle=line[a+len('<Title>'):o]
-            a=line.find('<StartTime>')
-            if a >0:
-                o=line.find('</StartTime>')
-                Starttime=line[a+len('<StartTime>'):o-10]               
-        f1.close
-    except IOError:
-        AccelP="99999"
-        Pchar="99999"
-        Exptitle="Not found"
-        preNeXusstat = False
-
-
-    NeXusdir='/SNS/NOM/IPTS-'+ iptsnr + '/nexus/'
-    NeXusfile=NeXusdir+'NOM_'+scannr+'.nxs.h5'
-    NeXusstat = True
-
-    try:
-        f1=open(NeXusfile,'r')
-        f1.close()
-       
-        nf=File(NeXusfile,'r')
-        Pchar=str(nf['/entry/proton_charge'][0])
-        AccelP=str(nf['/entry/total_pulses'][0])
-        try:
-            Exptitle=str(nf['/entry/title'][0])
-        except KeyError:
-            Exptitle='No title NeXus'
-        Starttime=str(nf['/entry/start_time'][0])[0:19]
-    except IOError:
-        NeXusstat = False
-        pass
-
-    minutes=int(float(AccelP)/3600.)
-    minutes=str(minutes)+ 'min'
-    Pchar=str(int(float(Pchar)*1e-9)/1000.)
-
-    outstring=scannr + ' ' + iptsnr + ' ' + minutes + ' ' +Starttime+' '+ AccelP + ' ' + Pchar
-    outstring+= ' ' + Exptitle.replace(',','') +  '\n'
-    #    print outstring,Pchar,Exptitle
-    f.write(outstring)
-    outstringcsv=scannr + ', ' + iptsnr + ', ' + minutes + ', ' +Starttime+', '+ AccelP + ', ' + Pchar
-    outstringcsv+= ',' + Exptitle.replace(',','') + '\n'
-        #    print outstring,Pchar,Exptitle
-    fcsv.write(outstringcsv) 
-f.close()
-fcsv.close()
-'''

@@ -299,8 +299,6 @@ class Scan( object ):
 
         items = [x for x in run.keys() if 'ITEMS' in x]
 
-        print run.keys()
-        print items
         if items:
             self.sample.getSampleFromItems(run, items)
             self.container.getContainerFromItems(run, items)
@@ -316,7 +314,6 @@ class Scan( object ):
             start = datetime.now()
 
         temps = [x for x in run.keys() if any( s in x for s in ('Temp','TEMP'))]
-        print temps
         if temps:
             self.getTemps(run,temps)
 
@@ -331,7 +328,6 @@ class Scan( object ):
             start = datetime.now()
 
         choppers = [x for x in run.keys() if any( s in x for s in ('chopper', 'Chopper'))]
-        print choppers
         if choppers:
             self.getChoppers(run, choppers)
 
