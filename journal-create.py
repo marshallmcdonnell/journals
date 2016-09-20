@@ -233,9 +233,10 @@ def createJournal( options ):
 
     #---output the list---
 
-    fields = ['title', 'iptsID', 'scanID']
+    fields = ['title', 'iptsID', 'scanID', 'start_time', 'end_time']
     df = pd.DataFrame( [ {key: getattr( scan, key) for key in fields} for scan in scans] )
-    print df.head()
+    for x in df:
+        print df[x]
     error("Stop")
 
 if __name__ == '__main__':
@@ -274,5 +275,6 @@ if __name__ == '__main__':
     # check conflict of searching in current directory or all directories
     checkCurrent(options.current, options.all)
 
+    # create the journal entry
     createJournal( options )
 
