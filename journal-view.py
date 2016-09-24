@@ -9,6 +9,8 @@ from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 
+instrumentList = ["NOM"]
+userList = ['ntm', 'benfrandsen', 'mth' ]
 
 def csv2data( filename ):
     df = pd.read_csv( filename, index_col=0)
@@ -17,26 +19,79 @@ def csv2data( filename ):
 class MainWindow( QMainWindow):
     def __init__(self, data, parent=None):
         super(MainWindow, self).__init__(parent)
-        centralWidget = QWidget(self) 
-        self.setCentralWidget( centralWidget )
+
+        centralWidget = QWidget()
+        self.setCentralWidget(centralWidget)
         self.mainLayout = QVBoxLayout(centralWidget)
 
+        self.tabs = QTabWidget(centralWidget)
         self.createMenu()
         self.createStatusBar()
+
+        self.create_table_tab(data)
+        self.create_plot_tab()
+
+        self.setLayout(self.mainLayout)
+        self.showMaximized()
+        self.show()
+
+    def create_table_tab(self,data):
+        tableTab = QWidget() 
+        self.tableLayout = QVBoxLayout(tableTab)
+
+        self.createFilterHeader()
+ 
+        self.createComboBox(["IPTS","Scan ID"], \
+                            self.tableLayout, \
+                            label="Filter:" )
         self.createItemsModel(data)
         self.createSortFilter()
         self.createTable()
-        self.showMaximized()
+
+        tableTab.setLayout(self.tableLayout)
+        self.tabs.addTab(tableTab, "Journal")
+        self.mainLayout.addWidget(self.tabs)
+
+    def createFilterHeader(self):
+        header  = QHBoxLayout()
+        header.addWidget( self.createDisplayGroupBox())
+        header.addWidget( self.createFilterGroupBox() )
+        self.tableLayout.addLayout(header)
+
+    def createDisplayGroupBox(self):
+        displayLayout   = QHBoxLayout()
+        displayGroupBox = QGroupBox("Display")
+        displayGroupBox.
+        self.createComboBox( instrumentList, 
+                             displayLayout, 
+                             label="Instrument: ")
+        displayGroupBox.setLayout(displayLayout)
+        return displayGroupBox
+
+    def createFilterGroupBox(self):
+        filterGroupBox  = QGroupBox("Filter")
+        filterLayout    = QHBoxLayout()
+        self.createComboBox( instrumentList, filterLayout, label="Title: ")
+        self.createComboBox( userList, filterLayout, label="User: ")
+        filterGroupBox.setLayout(filterLayout)
+        return filterGroupBox
+
+    def create_plot_tab(self):
+        plotTab = QWidget()
+        self.tabs.addTab(plotTab, "Plots")
 
     def createMenu(self):
-        self.fileMenu = self.menuBar().addMenu("&File")
+        mainMenu = QMenuBar()
+        fileMenu = mainMenu.addMenu("&File")
         loadFileAction = self.createAction("&Save plot",
             shortcut="Ctrl+S", slot=self.savePlot,
             tip="Save current plot")
         quitAction = self.createAction("&Quit", slot=self.close,
             shortcut="Ctrl+Q", tip="Close application")
         
-        self.addActions(self.fileMenu, (loadFileAction,None,quitAction) )
+        self.addActions(fileMenu, (loadFileAction,None,quitAction) )
+
+        self.mainLayout.addWidget(mainMenu)
 
     def createStatusBar(self):
         self.statusText = QLabel("Welcome to the Journal-Viewer!")
@@ -76,6 +131,28 @@ class MainWindow( QMainWindow):
             self.canvas.print_figure(path, dpi=self.dpi)
             self.statusBar().showMessage('Saved to %s' % path, 2000)
 
+    def createComboBox(self, items, layout, label=None):
+        if not items:
+            print "ERROR: Must have items for createComboBox"
+            exit()
+        newBox =  QComboBox() 
+        labelWidget = self.addComboItems( newBox, items, label=label)
+        if label:
+            layout.addWidget(labelWidget)
+        layout.addWidget(newBox)
+        return labelWidget
+
+    def addComboItems( self, target, items, label=None ):
+        labelWidget = None
+        for item in items:
+            target.addItem(item)
+        if label:
+            labelWidget = QLabel()
+            labelWidget.setText(label)
+            labelWidget.setBuddy(target)
+        return labelWidget
+        
+
     def createItemsModel(self, data):
         self.model = QStandardItemModel( len(data.index), len(data.columns) )
         self.setData(data)
@@ -98,15 +175,14 @@ class MainWindow( QMainWindow):
 
         self.line_edit = QLineEdit()
         self.line_edit.textChanged.connect(self.filterModel.setFilterRegExp)
-        self.mainLayout.addWidget(self.line_edit)
+        self.tableLayout.addWidget(self.line_edit)
         
 
     def createTable(self):
         self.table = QTableView()
         self.table.setModel(self.filterModel)
         self.table.setSortingEnabled(True)
-        self.mainLayout.addWidget(self.table)
-
+        self.tableLayout.addWidget(self.table)
 
 if __name__ == '__main__':
     import sys
@@ -123,5 +199,4 @@ if __name__ == '__main__':
 
     app    = QApplication(sys.argv)
     window = MainWindow(dataframe)
-    window.show()
     app.exec_()
