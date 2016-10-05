@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1290</width>
+    <height>710</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>JournalView</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QGridLayout" name="gridLayout_2">
+    <item row="0" column="0">
+     <widget class="QGroupBox" name="groupBox">
+      <property name="title">
+       <string>Display</string>
+      </property>
+      <layout class="QFormLayout" name="formLayout">
+       <item row="0" column="0">
+        <widget class="QLabel" name="instrumentLabel">
+         <property name="text">
+          <string>Instrument:</string>
+         </property>
+         <property name="buddy">
+          <cstring>instrumentComboBox</cstring>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QComboBox" name="instrumentComboBox"/>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item row="0" column="1">
+     <widget class="QGroupBox" name="groupBox_2">
+      <property name="title">
+       <string>Filter</string>
+      </property>
+      <layout class="QGridLayout" name="gridLayout">
+       <item row="3" column="6">
+        <widget class="QLineEdit" name="iptsLineEdit"/>
+       </item>
+       <item row="0" column="0" rowspan="4">
+        <widget class="Line" name="line_3">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLabel" name="titleLabel">
+         <property name="text">
+          <string>Title:</string>
+         </property>
+         <property name="buddy">
+          <cstring>titleLineEdit</cstring>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="2">
+        <widget class="QLineEdit" name="titleLineEdit"/>
+       </item>
+       <item row="0" column="4" rowspan="4">
+        <widget class="Line" name="line">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="5">
+        <widget class="QLabel" name="userLabel">
+         <property name="text">
+          <string>User:</string>
+         </property>
+         <property name="buddy">
+          <cstring>userLineEdit</cstring>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="6">
+        <widget class="QLineEdit" name="userLineEdit"/>
+       </item>
+       <item row="0" column="7" rowspan="4">
+        <widget class="Line" name="line_2">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="8">
+        <widget class="QComboBox" name="dateComboBox">
+         <property name="focusPolicy">
+          <enum>Qt::WheelFocus</enum>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="9">
+        <widget class="QDateTimeEdit" name="dateTimeEdit"/>
+       </item>
+       <item row="0" column="10">
+        <widget class="QLabel" name="dateToLabel">
+         <property name="text">
+          <string>to</string>
+         </property>
+         <property name="textFormat">
+          <enum>Qt::LogText</enum>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="11">
+        <widget class="QDateTimeEdit" name="dateTimeEdit_2"/>
+       </item>
+       <item row="3" column="2">
+        <widget class="QCheckBox" name="titleCaseCheckBox">
+         <property name="text">
+          <string>Case Sensitive</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="5">
+        <widget class="QLabel" name="iptsLabel">
+         <property name="text">
+          <string>IPTS:</string>
+         </property>
+         <property name="buddy">
+          <cstring>iptsLineEdit</cstring>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="8">
+        <widget class="QLabel" name="scanLabel">
+         <property name="text">
+          <string>Scan ID:</string>
+         </property>
+         <property name="buddy">
+          <cstring>scanStartSpinBox</cstring>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="9">
+        <widget class="QSpinBox" name="scanStartSpinBox">
+         <property name="minimum">
+          <number>1</number>
+         </property>
+         <property name="maximum">
+          <number>99999</number>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="10">
+        <widget class="QLabel" name="scanToLabel">
+         <property name="text">
+          <string>to</string>
+         </property>
+         <property name="textFormat">
+          <enum>Qt::LogText</enum>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="11">
+        <widget class="QSpinBox" name="scanStopSpinBox">
+         <property name="minimum">
+          <number>1</number>
+         </property>
+         <property name="maximum">
+          <number>99999</number>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="3">
+        <widget class="QComboBox" name="titleSyntaxComboBox"/>
+       </item>
+      </layout>
+      <zorder>titleLineEdit</zorder>
+      <zorder>titleLabel</zorder>
+      <zorder>titleCaseCheckBox</zorder>
+      <zorder>userLineEdit</zorder>
+      <zorder>userLabel</zorder>
+      <zorder>dateComboBox</zorder>
+      <zorder>dateTimeEdit</zorder>
+      <zorder>dateToLabel</zorder>
+      <zorder>dateTimeEdit_2</zorder>
+      <zorder>iptsLineEdit</zorder>
+      <zorder>iptsLabel</zorder>
+      <zorder>line</zorder>
+      <zorder>line_2</zorder>
+      <zorder>line_3</zorder>
+      <zorder>scanLabel</zorder>
+      <zorder>scanStartSpinBox</zorder>
+      <zorder>scanToLabel</zorder>
+      <zorder>scanStopSpinBox</zorder>
+      <zorder>titleSyntaxComboBox</zorder>
+     </widget>
+    </item>
+    <item row="1" column="0" colspan="2">
+     <widget class="QTableView" name="tableView"/>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1290</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menu_File">
+    <property name="title">
+     <string>&amp;File</string>
+    </property>
+    <widget class="QMenu" name="menuImport">
+     <property name="title">
+      <string>Import...</string>
+     </property>
+     <addaction name="actionHDF5"/>
+     <addaction name="actionCSV"/>
+     <addaction name="actionXML"/>
+    </widget>
+    <addaction name="menuImport"/>
+    <addaction name="action_Plot"/>
+    <addaction name="separator"/>
+    <addaction name="action_Close"/>
+   </widget>
+   <addaction name="menu_File"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionHDF5">
+   <property name="text">
+    <string>HDF5</string>
+   </property>
+  </action>
+  <action name="actionCSV">
+   <property name="text">
+    <string>CSV</string>
+   </property>
+  </action>
+  <action name="actionXML">
+   <property name="text">
+    <string>XML</string>
+   </property>
+  </action>
+  <action name="action_Plot">
+   <property name="text">
+    <string>&amp;Plot</string>
+   </property>
+  </action>
+  <action name="action_Close">
+   <property name="text">
+    <string>&amp;Close</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
