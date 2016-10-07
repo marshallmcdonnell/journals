@@ -71,19 +71,23 @@ def getDateRange(start, stop):
 
     if len(start.split('/')) == 2:
         month, year = start.split('/')
-        startDate = datetime.datetime( year, month, 1 )
+        month, year = int(month), int(year)
+        startDate = datetime( year, month, 1 )
     elif len(start.split('/')) == 3:
         month, day, year = start.split('/')
-        startDate = datetime.datetime( year, month, day )
+        month, day, year = int(month), int(day), int(year)
+        startDate = datetime( year, month, day )
     else:
         error("Incorrect start date format. Either MM/YYYY or MM/DD/YYYY")
     
     if len(stop.split('/')) == 2:
         month, year = stop.split('/')
-        stopDate = datetime.datetime( year, month, 1 )
+        month, year = int(month), int(year)
+        stopDate = datetime( year, month, 1 )
     elif len(stop.split('/')) == 3:
         month, day, year = stop.split('/')
-        stopDate = datetime.datetime( year, month, day )
+        month, day, year = int(month), int(day), int(year)
+        stopDate = datetime( year, month, day )
     else:
         error("Incorrect stop date format. Either MM/YYYY or MM/DD/YYYY")
 

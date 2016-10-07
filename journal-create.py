@@ -237,7 +237,6 @@ def createJournal( options ):
     df = pd.DataFrame( [ {key: getattr( scan, key) for key in fields} for scan in scans] )
     for x in df:
         print df[x]
-    error("Stop")
 
 if __name__ == '__main__':
 
@@ -251,7 +250,7 @@ if __name__ == '__main__':
                       help="look in the current IPTS")
     parser.add_argument("-R", "--root", default="/SNS/NOM/", type=str,
                         help="Root directory of instrument that contains IPTSs." )
-    parser.add_argument("-I", "--IPTS", dest="ipts", nargs='*',
+    parser.add_argument("-i", "--IPTS", dest="ipts", nargs='*',
                       help="look in the specified IPTS")
     parser.add_argument("-s", "--scans", default=None,nargs='*',
                       help="look in the specified scan #'s (usage: -s 55555 19000-19005 ")

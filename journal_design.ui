@@ -93,16 +93,6 @@
          </property>
         </widget>
        </item>
-       <item row="0" column="8">
-        <widget class="QComboBox" name="dateComboBox">
-         <property name="focusPolicy">
-          <enum>Qt::WheelFocus</enum>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="9">
-        <widget class="QDateTimeEdit" name="dateTimeEdit"/>
-       </item>
        <item row="0" column="10">
         <widget class="QLabel" name="dateToLabel">
          <property name="text">
@@ -112,9 +102,6 @@
           <enum>Qt::LogText</enum>
          </property>
         </widget>
-       </item>
-       <item row="0" column="11">
-        <widget class="QDateTimeEdit" name="dateTimeEdit_2"/>
        </item>
        <item row="3" column="2">
         <widget class="QCheckBox" name="titleCaseCheckBox">
@@ -136,45 +123,36 @@
        <item row="3" column="8">
         <widget class="QLabel" name="scanLabel">
          <property name="text">
-          <string>Scan ID:</string>
-         </property>
-         <property name="buddy">
-          <cstring>scanStartSpinBox</cstring>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="9">
-        <widget class="QSpinBox" name="scanStartSpinBox">
-         <property name="minimum">
-          <number>1</number>
-         </property>
-         <property name="maximum">
-          <number>99999</number>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="10">
-        <widget class="QLabel" name="scanToLabel">
-         <property name="text">
-          <string>to</string>
-         </property>
-         <property name="textFormat">
-          <enum>Qt::LogText</enum>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="11">
-        <widget class="QSpinBox" name="scanStopSpinBox">
-         <property name="minimum">
-          <number>1</number>
-         </property>
-         <property name="maximum">
-          <number>99999</number>
+          <string>Scan ID list (ex: 1001 1005-1009 ...):</string>
          </property>
         </widget>
        </item>
        <item row="0" column="3">
         <widget class="QComboBox" name="titleSyntaxComboBox"/>
+       </item>
+       <item row="0" column="8">
+        <widget class="QLabel" name="dateRangeLabel">
+         <property name="text">
+          <string>Date Range:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="9">
+        <widget class="QDateEdit" name="dateStart">
+         <property name="calendarPopup">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="11">
+        <widget class="QDateEdit" name="dateEnd">
+         <property name="calendarPopup">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="9">
+        <widget class="QLineEdit" name="scanLineEdit"/>
        </item>
       </layout>
       <zorder>titleLineEdit</zorder>
@@ -182,24 +160,22 @@
       <zorder>titleCaseCheckBox</zorder>
       <zorder>userLineEdit</zorder>
       <zorder>userLabel</zorder>
-      <zorder>dateComboBox</zorder>
-      <zorder>dateTimeEdit</zorder>
+      <zorder>dateStart</zorder>
       <zorder>dateToLabel</zorder>
-      <zorder>dateTimeEdit_2</zorder>
+      <zorder>dateEnd</zorder>
       <zorder>iptsLineEdit</zorder>
       <zorder>iptsLabel</zorder>
       <zorder>line</zorder>
       <zorder>line_2</zorder>
       <zorder>line_3</zorder>
       <zorder>scanLabel</zorder>
-      <zorder>scanStartSpinBox</zorder>
-      <zorder>scanToLabel</zorder>
-      <zorder>scanStopSpinBox</zorder>
       <zorder>titleSyntaxComboBox</zorder>
+      <zorder>dateRangeLabel</zorder>
+      <zorder>scanLineEdit</zorder>
      </widget>
     </item>
     <item row="1" column="0" colspan="2">
-     <widget class="QTableView" name="tableView"/>
+     <widget class="QTreeView" name="treeView"/>
     </item>
    </layout>
   </widget>
