@@ -211,9 +211,12 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
             scanColumnIndex = self._getHeaderIndex('scan')
             if scanColumnIndex is None:
                 return
+        scans = [ int(self.model.data( self.model.index(r, scanColumnIndex)).toPyObject())
+                  for r in range(self.model.rowCount()) ]
+        scanRange = str(min(scans))+"-"+str(max(scans))
         self.proxyModel.addFilterHeaders( 'scan', scanColumnIndex )
         self.proxyModel.addFilterFunction('scan', lambda r,s : (int(r[scanColumnIndex]) in s) )
-        self.scanLineEdit.setText('0-99999')
+        self.scanLineEdit.setText(scanRange)
         self.scanFilterChanged()    
         self.scanLineEdit.returnPressed.connect(self.scanFilterChanged )
 
