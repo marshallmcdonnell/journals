@@ -233,10 +233,21 @@ def createJournal( options ):
 
     #---output the list---
 
-    fields = ['title', 'iptsID', 'scanID', 'start_time', 'end_time']
-    df = pd.DataFrame( [ {key: getattr( scan, key) for key in fields} for scan in scans] )
-    for x in df:
-        print df[x]
+    print "*** Pandas dataframe ***"
+    headers = ['Scan','IPTS','time','starttime','stoptime',"PP's",'PC/pC','user','title']
+    fields = ['scanID','iptsID','time','start_time','end_time',"total_pulses",'total_proton_charge','user','title']
+    #df = pd.DataFrame( [ {key: getattr( scan, key) for key in fields} for scan in scans] )
+    df = pd.DataFrame( )
+    for header, field in zip( headers, fields ):
+        if field in ['start_time', 'end_time']:
+            datetimes = [ str(getattr(scan,field).datetime) for scan in scans ]
+            df[header] = [ 'T'.join(dt.split()) for dt in datetimes ]
+        else:
+            df[header] = [ getattr( scan, field ) for scan in scans ]
+
+
+    df = df[headers]
+    df.to_csv('test.csv', index=False)
 
 if __name__ == '__main__':
 

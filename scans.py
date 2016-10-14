@@ -46,9 +46,11 @@ class DateTime(object):
             self.datetime = datetime
 
     def getDateTime(self, string):
+        print string
         date, time = string.split('T')
         year, month, day = [ int(x) for x in date.split('-') ]
         hour, minute, second = [ int(float(x)) for x in time.split(':') ]
+        print time
         self.datetime = datetime( year, month, day, hour=hour, minute=minute, second=second )
         return
 
@@ -154,7 +156,10 @@ class Scan( object ):
         self.title        = None
         self.beamlineName = None
         self.total_pulses = None
+        self.total_proton_charge = None
         self.proton_charge = None
+        self.time         = None
+        self.user         = 'N/A'
 
         self.sample      = Sample()
         self.container   = Container()
@@ -191,7 +196,8 @@ class Scan( object ):
         print "Ended on:", self.end_time.printDateTime()
         print
         print "Beamline:", self.beamlineName
-        print "Proton charge:", self.proton_charge
+        print "Proton charge:", self.total_proton_charge
+        print "Time:", self.time
         print "Total pulses:", self.total_pulses
         print
         print "Container:", self.container.type, self.container.id
@@ -276,8 +282,14 @@ class Scan( object ):
             print "getting proton_info",
             start = datetime.now()
 
-        self.proton_charge.getDAS(run['proton_charge'])
+        p = run['proton_charge']
+        self.proton_charge.getDAS(p)
         self.total_pulses = len(self.proton_charge.values)
+
+        time = p.lastTime() - p.firstTime()
+        self.time = str(time.minutes()) + 'min'
+
+        self.total_proton_charge = (sum(p.value)*1e-9)/1000.
 
         if benchmark:
             stop = datetime.now()
