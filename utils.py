@@ -19,10 +19,10 @@ def procNumbers(numberList):
     except TypeError:
         pass
 
-
     # split on commas
     result = []
-    numberList = [ num for num in numberList.split() ]
+    if isinstance(numberList, str):
+        numberList = [ num for num in numberList.split() ]
     for item in numberList:
         # if there is a dash then it is a range
         if "-" in item:

@@ -46,11 +46,9 @@ class DateTime(object):
             self.datetime = datetime
 
     def getDateTime(self, string):
-        print string
         date, time = string.split('T')
         year, month, day = [ int(x) for x in date.split('-') ]
         hour, minute, second = [ int(float(x)) for x in time.split(':') ]
-        print time
         self.datetime = datetime( year, month, day, hour=hour, minute=minute, second=second )
         return
 
@@ -287,7 +285,8 @@ class Scan( object ):
         self.total_pulses = len(self.proton_charge.values)
 
         time = p.lastTime() - p.firstTime()
-        self.time = str(time.minutes()) + 'min'
+        
+        self.time = str(int(60.*time.hours() + time.minutes())) + 'min'
 
         self.total_proton_charge = (sum(p.value)*1e-9)/1000.
 

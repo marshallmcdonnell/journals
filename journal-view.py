@@ -261,10 +261,35 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
     def createTable(self):
         self.treeView.setModel(self.childProxyModel)
         self.treeView.setSortingEnabled(True)
+        self.treeView.customContextMenuRequested.connect(self.rightClickMenu)
+        self.treeView.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.treeView.setSizePolicy( QtGui.QSizePolicy().Expanding, QtGui.QSizePolicy().Expanding )
         self.treeView.setAlternatingRowColors(True)
         self.treeView.setSelectionMode( QtGui.QAbstractItemView.ExtendedSelection )
         self.treeView.sortByColumn(0, QtCore.Qt.AscendingOrder)
+
+    def rightClickMenu(self, pos=None):
+        index = self.treeView.indexAt(pos)
+        if not index.isValid():
+            return
+        r   = index.row()
+        print index, r
+        self._selected_scans = [ str(self.model.data(self.model.index(r,c)).toPyObject())
+                               for c in range(self.model.columnCount()) ] 
+
+        _plot = QtGui.QAction(self)
+        _plot.setObjectName('PlotAction')
+        _plot.setText('Plot')
+
+        _menu = QtGui.QMenu('Menu', self.treeView)
+        _menu.addAction(_plot)
+        _plot.triggered.connect( self.launchPlot)
+        _menu.popup(self.treeView.mapToGlobal(pos))
+
+    def launchPlot(self):
+        print "Launch the plot for ", self._selected_scans, "! ....well?!?"
+
+
 
 
     '''
@@ -281,6 +306,10 @@ def csv2data( filename ):
     df = pd.read_csv( filename)
     return df
 
+def hdf2data( filename ):
+    df = pd.read_hdf( filename)
+    return df
+
 def main(data):
     app = QtGui.QApplication(sys.argv)
     form = App(data)
@@ -294,10 +323,16 @@ if __name__ == '__main__':
     parser = ArgumentParser("Program to launch a PyQt GUI for displaying journal files of NOMAD data.")
     parser.add_argument("--csv", type=str,
                       help="Filename for importing in CSV data." )
-
+    parser.add_argument("--hdf", type=str,
+                      help="Filename for importing in HDF data." )
     args = parser.parse_args()
+
+    if args.csv and args.hdf:
+        error_handler.error("Pick one input file.")
 
     if args.csv:
         data = csv2data(args.csv)
+    elif args.hdf:
+        data = hdf2data(args.hdf)
 
     main(data)

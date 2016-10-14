@@ -4,18 +4,17 @@
 import numpy as np
 import pandas as pd
 
-from os import listdir,getcwd
-import sys, re
-import argparse 
-import datetime
-import pdb
+import os, sys, re, argparse, datetime 
 
-from error_handler import *
-from scans         import *
+import error_handler
+import scanClass
+import utils
 
 sys.path.append('/opt/Mantid/bin')
 
 from mantid.simpleapi import LoadEventNexus 
+
+_supported_formats = ['csv', 'hdf']
 
 def pair(arg):
     return [str(x) for x in arg.split('-')]
@@ -28,36 +27,12 @@ def parseInt(number):
 
     return 0
 
-def procNumbers(numberList):
-    # simply see if it is an integer
-    try:
-        return [int(numberList)]
-    except ValueError and TypeError:
-        pass
-
-    # split on commas
-    result = []
-    for item in numberList:
-        # if there is a dash then it is a range
-        if "-" in item:
-            item = [parseInt(i) for i in item.split("-")]
-            item.sort()
-            if item[0]:
-                result.extend(range(item[0], item[1]+1))
-        else:
-            item = parseInt(item)
-            if item:
-                result.append(item)
-
-    result.sort()
-    return result
-
 def getCurrentIPTS(ipts):
     # try to find the current IPTS from the current directory string
-    currentdir=getcwd()
+    currentdir=os.getcwd()
     foundipts=currentdir.find("IPTS")
     if (foundipts<0):
-        error("Current directory is not itself or in an IPTS directory.")
+        error_handler.error("Current directory is not itself or in an IPTS directory.")
     elif foundipts>-1:
         foundslash=currentdir[foundipts:].find("/")
         if foundslash >-1:
@@ -67,25 +42,21 @@ def getCurrentIPTS(ipts):
     return ipts
 
 def getAllIPTS(root):
-    from os.path import abspath,lexists
     # find all accessible IPTS
-    c=listdir(root)
+    c=os.listdir(root)
     allipts=[arg for arg in c if arg[:5] == 'IPTS-']
     alliptsnr=[int((arg[5:])) for arg in c if arg[:5] == 'IPTS-']
     return alliptsnr
 
 def getNumScansForIPTS( ipts, root ):
-    from os import listdir
-    from os.path import isdir
-    import pdb
 
     path=root+'IPTS-'+str(ipts)
-    if isdir(path+'/nexus'):
-        scanList=listdir(path+'/nexus')
+    if os.path.isdir(path+'/nexus'):
+        scanList=os.listdir(path+'/nexus')
         return len(scanList)
 
-    elif isdir(path+'/0'):
-        scanList=listdir(path+'/0')
+    elif os.path.isdir(path+'/0'):
+        scanList=os.listdir(path+'/0')
         return len(scanList)
 
     else:
@@ -103,8 +74,6 @@ def printFoundIPTSinfo( ipts, root ):
 
 
 def createScans( iptsList, root, scansFilter ):
-    import os
-    import pdb
 
     scans=[]
     for ipts in iptsList:
@@ -119,15 +88,15 @@ def createScans( iptsList, root, scansFilter ):
 
             if scansFilter:
                 print "filtering on scans"
-                scanRanges = procNumbers(scansFilter)
-                scanList = filterOnScans( scanList, scanRanges )
+                scanRanges = utils.procNumbers(scansFilter)
+                scanList = scanClass.filterOnScans( scanList, scanRanges )
 
             for NeXusFile in sorted(scanList):
 
                 # FUTURE - multi-thread this part of code
 
                 scan = int(re.search(r'\d+', NeXusFile).group())
-                s = Scan(iptsID=ipts, scanID=scan)
+                s = scanClass.Scan(iptsID=ipts, scanID=scan)
 
                 print "File:", NeXusFile
                 nx = LoadEventNexus(path+'/nexus/'+NeXusFile,MetaDataOnly=True)
@@ -143,8 +112,8 @@ def createScans( iptsList, root, scansFilter ):
             scanList=os.listdir(path+'/0')
 
             if scansFilter:
-                scanRanges = procNumbers(scansFilter)
-                scanList = filterOnScans( scanList, scanRanges )
+                scanRanges = utils.procNumbers(scansFilter)
+                scanList = scanClass.filterOnScans( scanList, scanRanges )
 
             for scan in sorted(scanList):
 
@@ -156,7 +125,7 @@ def createScans( iptsList, root, scansFilter ):
                                  "IPTS-"+str(ipts)+" with Scan ID:"+scan)
                 else:    
                 
-                    s = Scan(iptsID=ipts, scanID=scan)
+                    s = scanClass.Scan(iptsID=ipts, scanID=scan)
 
                     nx = LoadEventNexus(path+'/0/'+scan+'/NeXus/'+NeXusFile,MetaDataOnly=True)
                     s.extractNexusData( nx, benchmark=False )
@@ -185,7 +154,7 @@ def createJournal( options ):
         ipts = getCurrentIPTS(ipts)
     
     if options.ipts:
-        iptsranges=procNumbers( options.ipts) 
+        iptsranges=utils.procNumbers( options.ipts) 
         ipts = ipts + iptsranges
 
     if options.all:
@@ -218,7 +187,7 @@ def createJournal( options ):
             a, b = getDateRange(start, stop )
             dateRanges.append( [a, b] )
         
-        scans = filterOnDate( scans,  dateRanges )
+        scans = scanClass.filterOnDate( scans,  dateRanges )
 
 
     for scan in scans:
@@ -226,7 +195,7 @@ def createJournal( options ):
 
     if options.samples:
         print "filtering on samples"
-        scans = filterOnSamples( scans, options.samples )
+        scans = scanClass.filterOnSamples( scans, options.samples )
 
     for scan in scans:
         scan.printScanSample()
@@ -234,27 +203,54 @@ def createJournal( options ):
     #---output the list---
 
     print "*** Pandas dataframe ***"
-    headers = ['Scan','IPTS','time','starttime','stoptime',"PP's",'PC/pC','user','title']
+    headers = ['Scan','IPTS','time','starttime','stoptime',"PPs",'PC_pC','user','title']
     fields = ['scanID','iptsID','time','start_time','end_time',"total_pulses",'total_proton_charge','user','title']
-    #df = pd.DataFrame( [ {key: getattr( scan, key) for key in fields} for scan in scans] )
-    df = pd.DataFrame( )
+
+    main_df = pd.DataFrame( )
     for header, field in zip( headers, fields ):
         if field in ['start_time', 'end_time']:
             datetimes = [ str(getattr(scan,field).datetime) for scan in scans ]
-            df[header] = [ 'T'.join(dt.split()) for dt in datetimes ]
+            main_df[header] = [ 'T'.join(dt.split()) for dt in datetimes ]
         else:
-            df[header] = [ getattr( scan, field ) for scan in scans ]
+            main_df[header] = [ getattr( scan, field ) for scan in scans ]
+        if header == 'time':
+            print 'time:', main_df[header]
+    
+    main_df = main_df[headers]
 
+    props = ['beamlineName', 'proton_charge']
+    scans_dfs = {}
+    for scan in scans:
+        scans_dfs[scan] = pd.DataFrame()
+        for prop in props:
+            scans_dfs[scan][prop] = getattr( scan, prop )
 
-    df = df[headers]
-    df.to_csv('test.csv', index=False)
+    if options.output:
+        fileformat, filename = options.output
+        if fileformat == 'csv':
+            main_df.to_csv(filename, index=False)
+
+        if fileformat == 'hdf':
+            if os.path.isfile(filename):
+                os.remove(filename)
+            f = pd.HDFStore(filename)
+            f.put( 'main', main_df, data_columns=True)
+            f.close()
+            for scan in scans:
+                filename='journal_scan'+str(scan.scanID)+'.hdf5'
+                if os.path.isfile(filename):
+                    os.remove(filename)
+                f = pd.HDFStore(filename)
+                f.put('props',scans_dfs[scan],data_columns=True)
+                f.close()
+                
 
 if __name__ == '__main__':
 
     #---interpret command line options---
   
     usage="Make a python analog to readtitles"
-    parser = argparse.ArgumentParser(description=usage )
+    parser = argparse.ArgumentParser(description=usage, formatter_class=argparse.RawTextHelpFormatter )
     parser.add_argument("-a", "--all", default=False, action="store_true",
                       help="look in all accessible IPTS")
     parser.add_argument("-c", "--current", default=False, action="store_true",
@@ -272,18 +268,19 @@ if __name__ == '__main__':
                       help="look by specified date ranges " + 
                            "(usage: -d <startDate>-<stopDate> w/ format: " + 
                            "MM/YYYY or MM/DD/YYYY")
-    parser.add_argument("-f", "--file", default='los.txt',
-                      help="output filename", metavar="FILE")
+    parser.add_argument("--output", nargs=2, type=str,  metavar=("FORMAT", "FILE"),
+                           default=('hdf','journal_main.hdf5'),
+                      help="output file format and filename. \n"
+                           "Current supported formats:\n    " + ', '.join(_supported_formats) )
     parser.add_argument("-v", "--verbose", action='store_true',
                       help="Will print out helpful messages. May flood stdout with " + 
                            "info (mainly, for debugging.) ")
 
     options = parser.parse_args()
 
-    filename=options.file
 
     # check conflict of searching in current directory or all directories
-    checkCurrent(options.current, options.all)
+    scanClass.checkCurrent(options.current, options.all)
 
     # create the journal entry
     createJournal( options )
