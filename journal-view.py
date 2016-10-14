@@ -41,11 +41,13 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
 
         self._getFilterHeaders()
 
-        self.createTitleSortFilter()
-        self.createIptsSortFilter()
-        self.createUserSortFilter()
-        self.createDateFilter()
-        self.createScanIdFilter()
+        self.createUserSortFilter(self.proxyModel)
+        self.createIptsSortFilter(self.userProxyModel)
+        self.createDateFilter(self.iptsProxyModel)
+        self.createScanIdFilter(self.dateProxyModel)
+        self.createTitleSortFilter(self.scanProxyModel)
+        
+        self.childProxyModel = self.titleProxyModel
 
     def createInstrumentList(self):
         for instrument in instrumentList:
@@ -69,7 +71,7 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
         for key in self._filterHeadersList:
             index = self._getHeaderIndex( key.lower() )
             if index is None:
-                error(str(key)+" is not in header")
+                print key, " is not in header. Disabling this filter."
             self._filterHeaders[key] = index
         return
 
@@ -80,16 +82,21 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
                 return x
         return None
 
-    def createTitleSortFilter(self):
+    def createTitleSortFilter(self, parentProxyModel):
+        self.titleProxyModel = CustomSortFilterProxyModel()
+        self.titleProxyModel.setSourceModel(parentProxyModel)
+
         titleColumnIndex = self._getHeaderIndex('title')
         if titleColumnIndex is None:
             titleColumnIndex = self._getHeaderIndex('Title')
             if titleColumnIndex is None:
+                self.titleLineEdit.setPlaceholderText('Disabled')
+                self.titleLineEdit.setDisabled(True)
                 return
 
         self.titleColumnIndex = titleColumnIndex
-        self.proxyModel.addFilterHeaders( 'title', titleColumnIndex )
-        self.proxyModel.addFilterFunction('title', lambda r,s : (s in r[titleColumnIndex]) )
+        self.titleProxyModel.addFilterHeaders( 'title', titleColumnIndex )
+        self.titleProxyModel.addFilterFunction('title', lambda r,s : (s in r[titleColumnIndex]) )
 
         self.titleCaseCheckBox.toggled.connect( self.titleFilterChanged )
 
@@ -99,11 +106,11 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
         self.titleSyntaxComboBox.currentIndexChanged.connect( self.titleFilterChanged )
         
         self.titleFilterChanged()    
-        self.titleLineEdit.textChanged.connect(self.titleFilterChanged )
+        self.titleLineEdit.editingFinished.connect(self.titleFilterChanged )
         
 
     def titleFilterChanged(self):
-        self.proxyModel.removeFilterFunction('title')
+        self.titleProxyModel.removeFilterFunction('title')
         v = self.titleColumnIndex
 
         syntax_nr = self.titleSyntaxComboBox.itemData( self.titleSyntaxComboBox.currentIndex() ).toString()
@@ -116,117 +123,143 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
 
         if syntax == 0: # regular expression
             if case_sensitive:
-                self.proxyModel.addFilterFunction('title', lambda r,s : re.search(s, r[v] ) is not None )
+                self.titleProxyModel.addFilterFunction('title', lambda r,s : re.search(s, r[v] ) is not None )
             else:
-                self.proxyModel.addFilterFunction('title', lambda r,s : re.search(s, r[v], re.IGNORECASE ) is not None)
+                self.titleProxyModel.addFilterFunction('title', lambda r,s : re.search(s, r[v], re.IGNORECASE ) is not None)
         elif syntax == 1 or syntax == 2: # wildcard or fixed string
             if case_sensitive:
-                self.proxyModel.addFilterFunction('title', lambda r,s : (s in r[v]) )
+                self.titleProxyModel.addFilterFunction('title', lambda r,s : (s in r[v]) )
             else:
-                self.proxyModel.addFilterFunction('title', lambda r,s : (s.lower() in r[v].lower()) )
+                self.titleProxyModel.addFilterFunction('title', lambda r,s : (s.lower() in r[v].lower()) )
 
-        self.proxyModel.setFilterValues('title', str(self.titleLineEdit.text()) )
+        self.titleProxyModel.setFilterValues('title', str(self.titleLineEdit.text()) )
 
-    def createIptsSortFilter(self):
+    def createIptsSortFilter(self, parentProxyModel):
+        self.iptsProxyModel = CustomSortFilterProxyModel()
+        self.iptsProxyModel.setSourceModel(parentProxyModel)
+
         iptsColumnIndex = self._getHeaderIndex('IPTS')
         if iptsColumnIndex is None:
             iptsColumnIndex = self._getHeaderIndex('ipts')
             if iptsColumnIndex is None:
+                self.iptsLineEdit.setPlaceholderText('Disabled')
+                self.iptsLineEdit.setDisabled(True)
                 return
-        self.proxyModel.addFilterHeaders( 'ipts', iptsColumnIndex )
-        self.proxyModel.addFilterFunction('ipts', lambda r,s : (s in r[iptsColumnIndex]) )
+        self.iptsProxyModel.addFilterHeaders( 'ipts', iptsColumnIndex )
+        self.iptsProxyModel.addFilterFunction('ipts', lambda r,s : (s in r[iptsColumnIndex]) )
         self.iptsFilterChanged()    
-        self.iptsLineEdit.textChanged.connect(self.iptsFilterChanged )
+        self.iptsLineEdit.editingFinished.connect(self.iptsFilterChanged )
 
     def iptsFilterChanged(self):
-        self.proxyModel.setFilterValues('ipts', str(self.iptsLineEdit.text()) )
+        self.iptsProxyModel.setFilterValues('ipts', str(self.iptsLineEdit.text()) )
 
-    def createUserSortFilter(self):
+    def createUserSortFilter(self, parentProxyModel):
+        self.userProxyModel = CustomSortFilterProxyModel()
+        self.userProxyModel.setSourceModel(parentProxyModel)
+
         userColumnIndex = self._getHeaderIndex('User')
         if userColumnIndex is None:
             userColumnIndex = self._getHeaderIndex('user')
             if userColumnIndex is None:
+                self.userLineEdit.setPlaceholderText('Disabled')
+                self.userLineEdit.setDisabled(True)
                 return
-        self.proxyModel.addFilterHeaders( 'user', userColumnIndex )
-        self.proxyModel.addFilterFunction('user', lambda r,s : (s in r[userColumnIndex]) )
+        self.userProxyModel.addFilterHeaders( 'user', userColumnIndex )
+        self.userProxyModel.addFilterFunction('user', lambda r,s : (s in r[userColumnIndex]) )
         self.userFilterChanged()    
-        self.userLineEdit.textChanged.connect(self.userFilterChanged )
+        self.userLineEdit.editingFinished.connect(self.userFilterChanged )
 
     def userFilterChanged(self):
-        self.proxyModel.setFilterValues('user', str(self.userLineEdit.text()) )
+        self.userProxyModel.setFilterValues('user', str(self.userLineEdit.text()) )
 
-    def createDateFilter(self):
+    def createDateFilter(self, parentProxyModel):
+        self.dateProxyModel = CustomSortFilterProxyModel()
+        self.dateProxyModel.setSourceModel(parentProxyModel)
+
+        currentDate = QtCore.QDate.currentDate()
+        currentTime = QtCore.QTime.currentTime()
+
         starttimeColumnIndex = self._getHeaderIndex('starttime')
         if starttimeColumnIndex is None:
             starttimeColumnIndex = self._getHeaderIndex('StartTime')
             if starttimeColumnIndex is None:
+                self.dateStart.setDisabled(True)
                 return
+
+        stoptimeColumnIndex = starttimeColumnIndex # bit of a hack
+        
+        self.dateStart.setDate( currentDate.addMonths(-6) )
+        self.dateStart.setTime( currentTime )
+        self.dateProxyModel.setDateColumnsToConvert( starttimeColumnIndex )
+        self.dateProxyModel.addFilterHeaders( 'startDate', starttimeColumnIndex )
+        self.dateProxyModel.addFilterFunction( 'minDate', lambda r, s :    self.dateStart.date() <= r[starttimeColumnIndex] 
+                                                                        or self.dateStart.date() <= r[stopttimeColumnIndex] )
+        self.dateStartFilterChanged()    
+        self.dateStart.dateChanged.connect(self.dateStartFilterChanged )
        
         stoptimeColumnIndex = self._getHeaderIndex('stoptime')
         if stoptimeColumnIndex is None:
             stoptimeColumnIndex = self._getHeaderIndex('StopTime')
             if stoptimeColumnIndex is None:
+                self.dateEnd.setDisabled(True)
                 return
-
-
-        currentDate = QtCore.QDate.currentDate()
-        currentTime = QtCore.QTime.currentTime()
 
         self.dateEnd.setDate(currentDate)
         self.dateEnd.setTime(currentTime)
+        self.dateProxyModel.setDateColumnsToConvert( stoptimeColumnIndex )
+        self.dateProxyModel.addFilterHeaders( 'stopDate', stoptimeColumnIndex )
+        self.dateProxyModel.addFilterFunction( 'maxDate', lambda r, s :    self.dateEnd.date()   >= r[starttimeColumnIndex] 
+                                                                        or self.dateEnd.date()   >= r[stopttimeColumnIndex] )
+        self.dateEndFilterChanged()    
+        self.dateEnd.dateChanged.connect(self.dateEndFilterChanged )
 
-        self.dateStart.setDate( currentDate.addMonths(-6) )
-        self.dateStart.setTime( currentTime )
-
-        self.proxyModel.setDateColumnsToConvert( [starttimeColumnIndex, stoptimeColumnIndex] )
-        self.proxyModel.addFilterHeaders( 'startDate', starttimeColumnIndex )
-        self.proxyModel.addFilterHeaders( 'stopDate', stoptimeColumnIndex )
-
-        self.proxyModel.addFilterFunction( 'minDate', lambda r, s :    self.dateStart.date() <= r[starttimeColumnIndex] 
-                                                                    or self.dateStart.date() <= r[stopttimeColumnIndex] )
-
-        self.proxyModel.addFilterFunction( 'maxDate', lambda r, s :    self.dateEnd.date()   >= r[starttimeColumnIndex] 
-                                                                    or self.dateEnd.date()   >= r[stopttimeColumnIndex] )
-        self.dateFilterChanged()    
-        self.dateStart.dateChanged.connect(self.dateFilterChanged )
-        self.dateEnd.dateChanged.connect(self.dateFilterChanged )
         return
 
-    def dateFilterChanged(self):
-        start = self.proxyModel.filterHeaders['startDate']
-        stop  = self.proxyModel.filterHeaders['stopDate']
-        self.proxyModel.setFilterValues('minDate', self.dateStart.date() )
-        self.proxyModel.setFilterValues('maxDate', self.dateEnd.date() )
-        self.proxyModel.removeFilterFunction('minDate')
-        self.proxyModel.removeFilterFunction('maxDate')
-        self.proxyModel.addFilterFunction( 'minDate', lambda r, s :    self.dateStart.date() <= r[start] 
-                                                                    or self.dateStart.date() <= r[stop] )
+    def dateStartFilterChanged(self):
+        start = self.dateProxyModel.filterHeaders['startDate']
+        if 'stopDate' in self.dateProxyModel.filterHeaders:
+            stop  = self.dateProxyModel.filterHeaders['stopDate']
+        else:
+            stop = start
+        self.dateProxyModel.setFilterValues('minDate', self.dateStart.date() )
+        self.dateProxyModel.removeFilterFunction('minDate')
+        self.dateProxyModel.addFilterFunction( 'minDate', lambda r, s :    self.dateStart.date() <= r[start] 
+                                                                        or self.dateStart.date() <= r[stop] )
+    def dateEndFilterChanged(self):
+        start = self.dateProxyModel.filterHeaders['startDate']
+        stop  = self.dateProxyModel.filterHeaders['stopDate']
+        self.dateProxyModel.setFilterValues('maxDate', self.dateEnd.date() )
+        self.dateProxyModel.removeFilterFunction('maxDate')
+        self.dateProxyModel.addFilterFunction( 'maxDate', lambda r, s :    self.dateEnd.date()   >= r[start] 
+                                                                        or self.dateEnd.date()   >= r[stop] )
 
-        self.proxyModel.addFilterFunction( 'maxDate', lambda r, s :    self.dateEnd.date()   >= r[start] 
-                                                                    or self.dateEnd.date()   >= r[stop] )
+    def createScanIdFilter(self, parentProxyModel):
+        self.scanProxyModel = CustomSortFilterProxyModel()
+        self.scanProxyModel.setSourceModel(parentProxyModel)
 
-    def createScanIdFilter(self):
         scanColumnIndex = self._getHeaderIndex('Scan')
         if scanColumnIndex is None:
             scanColumnIndex = self._getHeaderIndex('scan')
             if scanColumnIndex is None:
+                self.scanLineEdit.setPlaceholderText('Disabled')
+                self.scanLineEdit.setDisabled(True)
                 return
         scans = [ int(self.model.data( self.model.index(r, scanColumnIndex)).toPyObject())
                   for r in range(self.model.rowCount()) ]
         scanRange = str(min(scans))+"-"+str(max(scans))
-        self.proxyModel.addFilterHeaders( 'scan', scanColumnIndex )
-        self.proxyModel.addFilterFunction('scan', lambda r,s : (int(r[scanColumnIndex]) in s) )
+        self.scanProxyModel.addFilterHeaders( 'scan', scanColumnIndex )
+        self.scanProxyModel.addFilterFunction('scan', lambda r,s : (int(r[scanColumnIndex]) in s) )
         self.scanLineEdit.setText(scanRange)
         self.scanFilterChanged()    
-        self.scanLineEdit.returnPressed.connect(self.scanFilterChanged )
+        self.scanLineEdit.editingFinished.connect(self.scanFilterChanged )
 
     def scanFilterChanged(self):
-        self.proxyModel.setFilterValues('scan', utils.procNumbers(str(self.scanLineEdit.text())) )
+        self.scanProxyModel.setFilterValues('scan', utils.procNumbers(str(self.scanLineEdit.text())) )
 
         return
 
     def createTable(self):
-        self.treeView.setModel(self.proxyModel)
+        self.treeView.setModel(self.childProxyModel)
         self.treeView.setSortingEnabled(True)
         self.treeView.setSizePolicy( QtGui.QSizePolicy().Expanding, QtGui.QSizePolicy().Expanding )
         self.treeView.setAlternatingRowColors(True)

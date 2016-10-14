@@ -5,7 +5,8 @@ class CustomSortFilterProxyModel(QtGui.QSortFilterProxyModel):
         super(CustomSortFilterProxyModel, self).__init__(parent)
         self.filterHeaders = {}
         self.filterValues = {}
-        self.filterFunctions = {} 
+        self.filterFunctions = {}
+        self.string2date = []
 
     def addFilterHeaders(self, header_name, row):
         self.filterHeaders[header_name] = row
@@ -27,16 +28,18 @@ class CustomSortFilterProxyModel(QtGui.QSortFilterProxyModel):
         return lambda r, s: r[row_num] <= maxval
 
     def setDateColumnsToConvert( self, colList ):
-        self.string2date = colList
+        if isinstance(colList,list):
+            self.string2date.extend(colList)
+        else:
+            self.string2date.append(colList)
 
     def addFilterFunction(self, name, new_func):
         self.filterFunctions[name] = new_func
-        self.invalidateFilter()
+        #self.invalidateFilter()
 
     def removeFilterFunction(self, name):
         if name in self.filterFunctions.keys():
             del self.filterFunctions[name]
-            self.invalidateFilter()
 
     def filterAcceptsRow(self, row_num, parent):
         model = self.sourceModel()
@@ -57,6 +60,9 @@ class CustomSortFilterProxyModel(QtGui.QSortFilterProxyModel):
                     date = [ int(d) for d in str(date).split("-") ]
                     time = [ int(t) for t in str(time).split(":") ]
                     date = QtCore.QDate(date[0],date[1],date[2])
+                    if len(time) < 3:
+                        for i in range(len(time),3):
+                            time.append(00)
                     time = QtCore.QTime(time[0],time[1],time[2])
                     pyobj = QtCore.QDateTime(date,time)
             
