@@ -101,7 +101,7 @@ class icat(object):
     def _get_meta_for_ipts(self,runs,proposal_json):
 
         if type(proposal_json) == list:
-            ipts_pulled = proposal_json[0]['@id'].split('-')[1]
+            ipts_pulled = int(proposal_json[0]['@id'].split('-')[1])
             runs_data = utils.procNumbers(proposal_json[0]['runRange']['$'])
             for i, proposal in enumerate(proposal_json[1:]):
                 runs_data += utils.procNumbers(proposal_json[0]['runRange']['$'])
@@ -109,7 +109,7 @@ class icat(object):
             for i, proposal in enumerate(proposal_json[1:]):
                 startTime += [(':'.join( proposal_json[i+1]['createTime']['$'].split(':')[0:3])).split('.')[0]]
         else:
-            ipts_pulled = proposal_json['@id'].split('-')[1]
+            ipts_pulled = int(proposal_json['@id'].split('-')[1])
             runs_data = utils.procNumbers(proposal_json['runRange']['$'])
             startTime = [(':'.join( proposal_json['createTime']['$'].split(':')[0:3])).split('.')[0]]
 
@@ -124,12 +124,12 @@ class icat(object):
     def _get_los_for_ipts(self,runs,proposal_json):
         
         if type(proposal_json) == list:
-            ipts_pulled = proposal_json[0]['@id'].split('-')[1]
+            ipts_pulled = int(proposal_json[0]['@id'].split('-')[1])
             runs_data = proposal_json[0]['runs']['run']
             for i, proposal in enumerate(proposal_json[1:]):
                 runs_data += proposal_json[i+1]['runs']['run']
         else:
-            ipts_pulled = proposal_json['@id'].split('-')[1]
+            ipts_pulled = int(proposal_json['@id'].split('-')[1])
             runs_data = proposal_json['runs']['run']
 
         los_data = dict()
@@ -176,6 +176,9 @@ class icat(object):
     def get_meta_ipts_data(self):
         return self._meta_ipts_data
 
+    def reset_los(self):
+        self._los_data = dict()
+    
     def get_los(self):
         return self._los_data
 

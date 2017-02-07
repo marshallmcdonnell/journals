@@ -31,8 +31,11 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
         super(App, self).__init__(parent)
         self.setupUi(self)
 
-        self._filterHeadersList = [ 'title', 'ipts', 'starttime', 'stoptime', 'user', 'scan' ]
+        self._filterHeadersList = [ 'title', 'ipts', 'starttime',  'user', 'scan' ]
         self._filterHeaders = {}
+        self._jv = None
+        self._ipts_list = None
+        self._meta_ipts_data = None
 
         self.createInstrumentList()
         self.createDatabaseList()
@@ -52,8 +55,30 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
         self.createDateFilter(self.iptsProxyModel)
         self.createScanIdFilter(self.dateProxyModel)
         self.createTitleSortFilter(self.scanProxyModel)
-        
+       
+        self.databaseButton.clicked.connect(self.pullFromDatabase)
+     
         self.childProxyModel = self.titleProxyModel
+
+    def pullFromDatabase(self):
+        start = self.dateStart.date()
+        stop  = self.dateEnd.date()
+        if self.iptsLineEdit.text().isEmpty():
+            ipts_list = None
+        else:
+            ipts_list = str(self.iptsLineEdit.text())
+            ipts_list = utils.procNumbers(ipts_list)
+            print ipts_list
+        if self.scanLineEdit.text().isEmpty():
+            scan_list = None
+        else:
+            scan_list = self.scanLineEdit.text()
+
+        data = self.update_icat_data(start=start,stop=stop,ipts_list=ipts_list,run_list=scan_list)
+        self.updateModel(data)
+        self.createSortFilters()
+        self.createTable()
+
 
     def createDatabaseList(self):
         for database in databaseList:
@@ -71,8 +96,9 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
         sourceType = self.getDataSourceType( source )
         if sourceType == "database":
             data = self.initialDatabasePull(source)
+        self.updateModel(data)
         
-
+    def updateModel(self,data):
         self.model = QtGui.QStandardItemModel( len(data.index), len(data.columns) )
         self.setData(data)
         for i in range(len(self.df.index)):
@@ -89,9 +115,8 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
         currentDate = QtCore.QDate.currentDate()
         currentTime = QtCore.QTime.currentTime()
  
-        startDate = currentDate.addMonths(-6)
+        startDate = currentDate.addMonths(-2)
         startTime = currentTime
-        print startDate.getDate(), currentDate.getDate()
 
         if source == "ICAT":
             data = self.initial_icat_data(startDate,currentDate)
@@ -100,26 +125,59 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
 
     def initial_icat_data(self,startDate,currentDate):
         jv = icat()
-        ipts_list = jv.getIPTSlist()
-        jv.getIPTSs(ipts_list[-5:-1],data='meta')
-        metadata = jv.get_meta_ipts_data()
-        ipts_list = list()
-        for k, v in metadata.iteritems():
-            for time in v['createtime']:
-                year, month, day = time.split('T')[0].split('-')
-                date = QtCore.QDate(int(year),int(month),int(day))
-                if startDate <= date and date <= currentDate:
-                    ipts_list.append(k)
-        data = self.icat2data(ipts_list)
+        self._jv = jv
+        self._ipts_list = jv.getIPTSlist()
+        jv.getIPTSs(self._ipts_list[200:],data='meta')
+        self._meta_ipts_data = jv.get_meta_ipts_data()
+        data = self.update_icat_data(start=startDate,stop=currentDate)
         return data
                     
-            
-                    
+    def update_icat_data(self,ipts_list=None,start=None,stop=None,run_list=None):
+        filtered_data = self._meta_ipts_data.copy()
+        
+        # IPTS filter
+        print ipts_list
+        print filtered_data.keys()
+        if ipts_list:
+            filtered_data = dict( (k, filtered_data[k]) for k in ipts_list if k in filtered_data)
+        print 'Filtered data:', filtered_data.keys()
 
-    def icat2data(self,my_ipts_list):
-        jv = icat()
-        ipts_list = jv.getIPTSlist()
-        jv.getIPTSs(my_ipts_list)
+        # Time filter
+        if start or stop:
+            pop_list = list()
+            for k, v in filtered_data.iteritems():
+                for time in v['createtime']:
+                    year, month, day = time.split('T')[0].split('-')
+                    date = QtCore.QDate(int(year),int(month),int(day))
+                    if start:
+                        if start > date:
+                            pop_list.append(k)
+                    if stop:
+                        if stop < date:
+                            pop_list.append(k)
+            for k in pop_list:
+                filtered_data.pop(k,None)
+                        
+        print 'Filtered data 2:', filtered_data.keys()
+
+        # Scan filter
+        if run_list:
+            for run in run_list:
+                for k, v in filtered_data.iteritems():
+                    if run in v['runs']:
+                        filtered_data[k]
+
+        print 'Filtered data 3:', filtered_data.keys()
+        if filtered_data:
+            return self.icat2data(filtered_data.keys())
+        else:
+            return
+         
+
+    def icat2data(self,ipts_list):
+        jv = self._jv
+        jv.reset_los()
+        jv.getIPTSs(ipts_list)
         data = jv.get_los()
         df = pd.DataFrame.from_dict(data,orient='index')
         df = df.reset_index()
@@ -219,13 +277,17 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
                 self.iptsLineEdit.setPlaceholderText('Disabled')
                 self.iptsLineEdit.setDisabled(True)
                 return
+        ipts_list = set([ int(self.model.data( self.model.index(r, iptsColumnIndex)).toPyObject())
+                      for r in range(self.model.rowCount()) ])
+        iptsRange = ' '.join(str(ipts) for ipts in sorted(ipts_list) )
         self.iptsProxyModel.addFilterHeaders( 'ipts', iptsColumnIndex )
-        self.iptsProxyModel.addFilterFunction('ipts', lambda r,s : (s in r[iptsColumnIndex]) )
+        self.iptsProxyModel.addFilterFunction('ipts', lambda r,s : (r[iptsColumnIndex] in s) )
+        self.iptsLineEdit.setText(iptsRange)
         self.iptsFilterChanged()    
         self.iptsLineEdit.editingFinished.connect(self.iptsFilterChanged )
 
     def iptsFilterChanged(self):
-        self.iptsProxyModel.setFilterValues('ipts', str(self.iptsLineEdit.text()) )
+        self.iptsProxyModel.setFilterValues('ipts', utils.procNumbers(str(self.iptsLineEdit.text())) )
 
     def createUserSortFilter(self, parentProxyModel):
         self.userProxyModel = CustomSortFilterProxyModel()
@@ -261,9 +323,13 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
                 return
 
         stoptimeColumnIndex = starttimeColumnIndex # bit of a hack
-        
-        self.dateStart.setDate( currentDate.addMonths(-6) )
-        self.dateStart.setTime( currentTime )
+       
+        times = [ str(self.model.data( self.model.index(r, starttimeColumnIndex)).toPyObject())
+                  for r in range(self.model.rowCount()) ]
+        times = [ t.split('T')[0] for t in times ]
+        times = [ QtCore.QDate.fromString( t, 'yyyy-MM-dd') for t in times]
+
+        self.dateStart.setDate( min(times) )
         self.dateProxyModel.setDateColumnsToConvert( starttimeColumnIndex )
         self.dateProxyModel.addFilterHeaders( 'startDate', starttimeColumnIndex )
         self.dateProxyModel.addFilterFunction( 'minDate', 
@@ -272,17 +338,16 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
         self.dateStartFilterChanged()    
         self.dateStart.dateChanged.connect(self.dateStartFilterChanged )
        
+        self.dateEnd.setDate(currentDate)
+        self.dateEnd.setTime(currentTime)
+
         stoptimeColumnIndex = self._getHeaderIndex('stoptime')
         if stoptimeColumnIndex is None:
             stoptimeColumnIndex = self._getHeaderIndex('StopTime')
             if stoptimeColumnIndex is None:
-                self.dateEnd.setDisabled(True)
-                return
+                self.dateProxyModel.setDateColumnsToConvert( stoptimeColumnIndex )
+                self.dateProxyModel.addFilterHeaders( 'stopDate', stoptimeColumnIndex )
 
-        self.dateEnd.setDate(currentDate)
-        self.dateEnd.setTime(currentTime)
-        self.dateProxyModel.setDateColumnsToConvert( stoptimeColumnIndex )
-        self.dateProxyModel.addFilterHeaders( 'stopDate', stoptimeColumnIndex )
         self.dateProxyModel.addFilterFunction( 'maxDate', 
                             lambda r, s :    self.dateEnd.date()   >= r[starttimeColumnIndex] 
                                           or self.dateEnd.date()   >= r[stopttimeColumnIndex] )
@@ -296,18 +361,24 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
         if 'stopDate' in self.dateProxyModel.filterHeaders:
             stop  = self.dateProxyModel.filterHeaders['stopDate']
         else:
-            stop = start
+            stop = None
         self.dateProxyModel.setFilterValues('minDate', self.dateStart.date() )
         self.dateProxyModel.removeFilterFunction('minDate')
-        self.dateProxyModel.addFilterFunction( 'minDate', lambda r, s :    self.dateStart.date() <= r[start] 
-                                                                        or self.dateStart.date() <= r[stop] )
+        if stop is None:
+            self.dateProxyModel.addFilterFunction( 'minDate', lambda r, s :    self.dateStart.date() <= r[start] )
+        else:
+            self.dateProxyModel.addFilterFunction( 'minDate', lambda r, s :    self.dateStart.date() <= r[start] 
+                                                                            or self.dateStart.date() <= r[stop] )
     def dateEndFilterChanged(self):
         start = self.dateProxyModel.filterHeaders['startDate']
         stop  = self.dateProxyModel.filterHeaders['stopDate']
         self.dateProxyModel.setFilterValues('maxDate', self.dateEnd.date() )
         self.dateProxyModel.removeFilterFunction('maxDate')
-        self.dateProxyModel.addFilterFunction( 'maxDate', lambda r, s :    self.dateEnd.date()   >= r[start] 
-                                                                        or self.dateEnd.date()   >= r[stop] )
+        if stop is None:
+            self.dateProxyModel.addFilterFunction( 'maxDate', lambda r, s :    self.dateEnd.date()   >= r[start] )
+        else:
+            self.dateProxyModel.addFilterFunction( 'maxDate', lambda r, s :    self.dateEnd.date()   >= r[start] 
+                                                                            or self.dateEnd.date()   >= r[stop] )
 
     def createScanIdFilter(self, parentProxyModel):
         self.scanProxyModel = CustomSortFilterProxyModel()

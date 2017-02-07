@@ -1,4 +1,6 @@
+import numpy as np
 from PyQt4 import QtGui, QtCore
+
 
 class CustomSortFilterProxyModel(QtGui.QSortFilterProxyModel):
     def __init__(self, parent=None):
@@ -77,4 +79,4 @@ class CustomSortFilterProxyModel(QtGui.QSortFilterProxyModel):
         tests = [func(rowData, self.filterValues[key])
                  for key, func in self.filterFunctions.items()]
 
-        return not False in tests
+        return not False in tests 
