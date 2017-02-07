@@ -8,6 +8,10 @@ import utils
 import journal_design
 from MyCustomSortFilterProxyModel import CustomSortFilterProxyModel
 
+from journal_source import icat
+
+databaseList = ['ICAT', 'CSV File']
+
 instrumentList = { "NOMAD"  : "NOM",
                    "SNAP"   : "SNAP",
                    "POWGEN" : "PG3",
@@ -21,8 +25,9 @@ def error(message):
     print
     sys.exit()
 
+
 class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
-    def __init__(self, data, parent=None):
+    def __init__(self, parent=None):
         super(App, self).__init__(parent)
         self.setupUi(self)
 
@@ -30,7 +35,8 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
         self._filterHeaders = {}
 
         self.createInstrumentList()
-        self.createItemsModel(data)
+        self.createDatabaseList()
+        self.createItemsModel()
         self.createSortFilters()
         self.createTable()
 
@@ -49,16 +55,82 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
         
         self.childProxyModel = self.titleProxyModel
 
+    def createDatabaseList(self):
+        for database in databaseList:
+            self.databaseComboBox.addItem(database)
+        self.databaseComboBox.setCurrentIndex(databaseList.index('ICAT'))
+
+
     def createInstrumentList(self):
         for instrument in instrumentList:
             self.instrumentComboBox.addItem(instrument)
+        self.instrumentComboBox.setCurrentIndex(instrumentList.keys().index('NOMAD'))
 
-    def createItemsModel(self, data):
+    def createItemsModel(self):
+        source = self.databaseComboBox.currentText()
+        sourceType = self.getDataSourceType( source )
+        if sourceType == "database":
+            data = self.initialDatabasePull(source)
+        
+
         self.model = QtGui.QStandardItemModel( len(data.index), len(data.columns) )
         self.setData(data)
         for i in range(len(self.df.index)):
             for j in range(len(self.df.columns)):
                 self.model.setItem(i,j,QtGui.QStandardItem(str(self.df.iat[i,j])))
+
+    def getDataSourceType(self,source):
+        if "File" in source:
+            return "file"
+        return "database"
+
+    def initialDatabasePull(self,source):
+       
+        currentDate = QtCore.QDate.currentDate()
+        currentTime = QtCore.QTime.currentTime()
+ 
+        startDate = currentDate.addMonths(-6)
+        startTime = currentTime
+        print startDate.getDate(), currentDate.getDate()
+
+        if source == "ICAT":
+            data = self.initial_icat_data(startDate,currentDate)
+
+        return data
+
+    def initial_icat_data(self,startDate,currentDate):
+        jv = icat()
+        ipts_list = jv.getIPTSlist()
+        jv.getIPTSs(ipts_list[-5:-1],data='meta')
+        metadata = jv.get_meta_ipts_data()
+        ipts_list = list()
+        for k, v in metadata.iteritems():
+            for time in v['createtime']:
+                year, month, day = time.split('T')[0].split('-')
+                date = QtCore.QDate(int(year),int(month),int(day))
+                if startDate <= date and date <= currentDate:
+                    ipts_list.append(k)
+        data = self.icat2data(ipts_list)
+        return data
+                    
+            
+                    
+
+    def icat2data(self,my_ipts_list):
+        jv = icat()
+        ipts_list = jv.getIPTSlist()
+        jv.getIPTSs(my_ipts_list)
+        data = jv.get_los()
+        df = pd.DataFrame.from_dict(data,orient='index')
+        df = df.reset_index()
+        df = df.rename(columns={'index': '#Scan', 'duration': 'time', 'protonCharge': 'PC/pC'})
+        col_order = ['#Scan', 'ipts', 'time', 'startTime', 'totalCounts', 'PC/pC', 'title']
+        df = df[col_order]
+        return df
+
+    def csv2data( filename ):
+        df = pd.read_csv( filename)
+        return df
 
     def setData(self, data):
         self.df = data
@@ -123,9 +195,11 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
 
         if syntax == 0: # regular expression
             if case_sensitive:
-                self.titleProxyModel.addFilterFunction('title', lambda r,s : re.search(s, r[v] ) is not None )
+                self.titleProxyModel.addFilterFunction('title', 
+                                     lambda r,s : re.search(s, r[v] ) is not None )
             else:
-                self.titleProxyModel.addFilterFunction('title', lambda r,s : re.search(s, r[v], re.IGNORECASE ) is not None)
+                self.titleProxyModel.addFilterFunction('title', 
+                                     lambda r,s : re.search(s, r[v], re.IGNORECASE ) is not None)
         elif syntax == 1 or syntax == 2: # wildcard or fixed string
             if case_sensitive:
                 self.titleProxyModel.addFilterFunction('title', lambda r,s : (s in r[v]) )
@@ -192,8 +266,9 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
         self.dateStart.setTime( currentTime )
         self.dateProxyModel.setDateColumnsToConvert( starttimeColumnIndex )
         self.dateProxyModel.addFilterHeaders( 'startDate', starttimeColumnIndex )
-        self.dateProxyModel.addFilterFunction( 'minDate', lambda r, s :    self.dateStart.date() <= r[starttimeColumnIndex] 
-                                                                        or self.dateStart.date() <= r[stopttimeColumnIndex] )
+        self.dateProxyModel.addFilterFunction( 'minDate', 
+                            lambda r, s :    self.dateStart.date() <= r[starttimeColumnIndex] 
+                                          or self.dateStart.date() <= r[stopttimeColumnIndex] )
         self.dateStartFilterChanged()    
         self.dateStart.dateChanged.connect(self.dateStartFilterChanged )
        
@@ -208,8 +283,9 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
         self.dateEnd.setTime(currentTime)
         self.dateProxyModel.setDateColumnsToConvert( stoptimeColumnIndex )
         self.dateProxyModel.addFilterHeaders( 'stopDate', stoptimeColumnIndex )
-        self.dateProxyModel.addFilterFunction( 'maxDate', lambda r, s :    self.dateEnd.date()   >= r[starttimeColumnIndex] 
-                                                                        or self.dateEnd.date()   >= r[stopttimeColumnIndex] )
+        self.dateProxyModel.addFilterFunction( 'maxDate', 
+                            lambda r, s :    self.dateEnd.date()   >= r[starttimeColumnIndex] 
+                                          or self.dateEnd.date()   >= r[stopttimeColumnIndex] )
         self.dateEndFilterChanged()    
         self.dateEnd.dateChanged.connect(self.dateEndFilterChanged )
 
@@ -302,37 +378,14 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
             for filename in os.listdir(directory):
                 self.listWidget.addItem(filename)
     '''
-def csv2data( filename ):
-    df = pd.read_csv( filename)
-    return df
 
-def hdf2data( filename ):
-    df = pd.read_hdf( filename)
-    return df
-
-def main(data):
+def main():
     app = QtGui.QApplication(sys.argv)
-    form = App(data)
+    form = App()
     form.show()
     app.exec_()
 
 
 if __name__ == '__main__':
     from argparse import ArgumentParser
-
-    parser = ArgumentParser("Program to launch a PyQt GUI for displaying journal files of NOMAD data.")
-    parser.add_argument("--csv", type=str,
-                      help="Filename for importing in CSV data." )
-    parser.add_argument("--hdf", type=str,
-                      help="Filename for importing in HDF data." )
-    args = parser.parse_args()
-
-    if args.csv and args.hdf:
-        error_handler.error("Pick one input file.")
-
-    if args.csv:
-        data = csv2data(args.csv)
-    elif args.hdf:
-        data = hdf2data(args.hdf)
-
-    main(data)
+    main()

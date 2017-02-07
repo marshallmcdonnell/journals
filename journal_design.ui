@@ -15,8 +15,60 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_2">
-    <item row="0" column="0">
-     <widget class="QGroupBox" name="groupBox">
+    <item row="1" column="2">
+     <widget class="QGroupBox" name="filterGroupBox">
+      <property name="title">
+       <string>Filters</string>
+      </property>
+      <layout class="QGridLayout" name="gridLayout_3">
+       <item row="1" column="2">
+        <widget class="QComboBox" name="titleSyntaxComboBox"/>
+       </item>
+       <item row="5" column="1">
+        <widget class="QLineEdit" name="userLineEdit"/>
+       </item>
+       <item row="1" column="1">
+        <widget class="QLineEdit" name="titleLineEdit"/>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="titleLabel">
+         <property name="text">
+          <string>Title:</string>
+         </property>
+         <property name="buddy">
+          <cstring>titleLineEdit</cstring>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="0">
+        <widget class="QLabel" name="userLabel">
+         <property name="text">
+          <string>User:</string>
+         </property>
+         <property name="buddy">
+          <cstring>userLineEdit</cstring>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="2">
+        <widget class="QCheckBox" name="titleCaseCheckBox">
+         <property name="text">
+          <string>Case Sensitive</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="2">
+        <widget class="QPushButton" name="filterButton">
+         <property name="text">
+          <string>Apply Filter</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item row="1" column="0">
+     <widget class="QGroupBox" name="displayGroupBox">
       <property name="title">
        <string>Display</string>
       </property>
@@ -34,83 +86,32 @@
        <item row="0" column="1">
         <widget class="QComboBox" name="instrumentComboBox"/>
        </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="databaseLabel">
+         <property name="text">
+          <string>Database</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QComboBox" name="databaseComboBox"/>
+       </item>
       </layout>
      </widget>
     </item>
-    <item row="0" column="1">
-     <widget class="QGroupBox" name="groupBox_2">
+    <item row="2" column="0" colspan="3">
+     <widget class="QTreeView" name="treeView"/>
+    </item>
+    <item row="1" column="1">
+     <widget class="QGroupBox" name="databaseGroupBox">
       <property name="title">
-       <string>Filter</string>
+       <string>Database</string>
       </property>
       <layout class="QGridLayout" name="gridLayout">
-       <item row="3" column="6">
+       <item row="1" column="4">
         <widget class="QLineEdit" name="iptsLineEdit"/>
        </item>
-       <item row="0" column="0" rowspan="4">
-        <widget class="Line" name="line_3">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="1">
-        <widget class="QLabel" name="titleLabel">
-         <property name="text">
-          <string>Title:</string>
-         </property>
-         <property name="buddy">
-          <cstring>titleLineEdit</cstring>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="2">
-        <widget class="QLineEdit" name="titleLineEdit"/>
-       </item>
-       <item row="0" column="4" rowspan="4">
-        <widget class="Line" name="line">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="5">
-        <widget class="QLabel" name="userLabel">
-         <property name="text">
-          <string>User:</string>
-         </property>
-         <property name="buddy">
-          <cstring>userLineEdit</cstring>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="6">
-        <widget class="QLineEdit" name="userLineEdit"/>
-       </item>
-       <item row="0" column="7" rowspan="4">
-        <widget class="Line" name="line_2">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="10">
-        <widget class="QLabel" name="dateToLabel">
-         <property name="text">
-          <string>to</string>
-         </property>
-         <property name="textFormat">
-          <enum>Qt::LogText</enum>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="2">
-        <widget class="QCheckBox" name="titleCaseCheckBox">
-         <property name="text">
-          <string>Case Sensitive</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="5">
+       <item row="1" column="3">
         <widget class="QLabel" name="iptsLabel">
          <property name="text">
           <string>IPTS:</string>
@@ -120,62 +121,56 @@
          </property>
         </widget>
        </item>
-       <item row="3" column="8">
-        <widget class="QLabel" name="scanLabel">
-         <property name="text">
-          <string>Scan ID list (ex: 1001 1005-1009 ...):</string>
-         </property>
-        </widget>
-       </item>
        <item row="0" column="3">
-        <widget class="QComboBox" name="titleSyntaxComboBox"/>
-       </item>
-       <item row="0" column="8">
         <widget class="QLabel" name="dateRangeLabel">
          <property name="text">
           <string>Date Range:</string>
          </property>
         </widget>
        </item>
-       <item row="0" column="9">
-        <widget class="QDateEdit" name="dateStart">
-         <property name="calendarPopup">
-          <bool>true</bool>
-         </property>
-        </widget>
+       <item row="2" column="4">
+        <widget class="QLineEdit" name="scanLineEdit"/>
        </item>
-       <item row="0" column="11">
+       <item row="0" column="6">
         <widget class="QDateEdit" name="dateEnd">
          <property name="calendarPopup">
           <bool>true</bool>
          </property>
         </widget>
        </item>
-       <item row="3" column="9">
-        <widget class="QLineEdit" name="scanLineEdit"/>
+       <item row="2" column="3">
+        <widget class="QLabel" name="scanLabel">
+         <property name="text">
+          <string>Scan ID list (ex: 1001 1005-1009 ...):</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="5">
+        <widget class="QLabel" name="dateToLabel">
+         <property name="text">
+          <string>to</string>
+         </property>
+         <property name="textFormat">
+          <enum>Qt::LogText</enum>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="4">
+        <widget class="QDateEdit" name="dateStart">
+         <property name="calendarPopup">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="6">
+        <widget class="QPushButton" name="databaseButton">
+         <property name="text">
+          <string>Update Table</string>
+         </property>
+        </widget>
        </item>
       </layout>
-      <zorder>titleLineEdit</zorder>
-      <zorder>titleLabel</zorder>
-      <zorder>titleCaseCheckBox</zorder>
-      <zorder>userLineEdit</zorder>
-      <zorder>userLabel</zorder>
-      <zorder>dateStart</zorder>
-      <zorder>dateToLabel</zorder>
-      <zorder>dateEnd</zorder>
-      <zorder>iptsLineEdit</zorder>
-      <zorder>iptsLabel</zorder>
-      <zorder>line</zorder>
-      <zorder>line_2</zorder>
-      <zorder>line_3</zorder>
-      <zorder>scanLabel</zorder>
-      <zorder>titleSyntaxComboBox</zorder>
-      <zorder>dateRangeLabel</zorder>
-      <zorder>scanLineEdit</zorder>
      </widget>
-    </item>
-    <item row="1" column="0" colspan="2">
-     <widget class="QTreeView" name="treeView"/>
     </item>
    </layout>
   </widget>

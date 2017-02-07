@@ -57,6 +57,7 @@ class CustomSortFilterProxyModel(QtGui.QSortFilterProxyModel):
                     pass
                 else:
                     date, time = pyobj.split("T")
+                    time = str(time).split('-')[0]
                     date = [ int(d) for d in str(date).split("-") ]
                     time = [ int(t) for t in str(time).split(":") ]
                     date = QtCore.QDate(date[0],date[1],date[2])
