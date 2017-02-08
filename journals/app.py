@@ -8,7 +8,8 @@ from PyQt4 import QtGui, QtCore
 from journals.utilities import process_numbers
 from journals.view import journal_design
 from journals.model.models import CustomSortFilterProxyModel
-from journals.db.icat import ICAT
+from journals.interfaces import Interface
+from journals.interfaces.icat import ICAT
 
 databaseList = ['ICAT', 'CSV File']
 
@@ -24,7 +25,7 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
 
         self._filterHeadersList = [ 'title', 'ipts', 'starttime',  'user', 'scan' ]
         self._filterHeaders = {}
-        self._jv = None
+        self._db = None
         self._ipts_list = None
         self._meta_ipts_data = None
 
@@ -65,7 +66,7 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
         else:
             scan_list = self.scanLineEdit.text()
 
-        data = self.update_icat_data(start=start,stop=stop,ipts_list=ipts_list,run_list=scan_list)
+        data = self.update_db_data(start=start,stop=stop,ipts_list=ipts_list,run_list=scan_list)
         self.updateModel(data)
         self.createSortFilters()
         self.createTable()
@@ -75,12 +76,14 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
         for database in databaseList:
             self.databaseComboBox.addItem(database)
         self.databaseComboBox.setCurrentIndex(databaseList.index('ICAT'))
+        self.databaseComboBox.setDisabled(True)
 
 
     def createInstrumentList(self):
         for instrument in instrumentList:
             self.instrumentComboBox.addItem(instrument)
         self.instrumentComboBox.setCurrentIndex(instrumentList.keys().index('NOMAD'))
+        self.instrumentComboBox.setDisabled(True)
 
     def createItemsModel(self):
         source = self.databaseComboBox.currentText()
@@ -109,21 +112,20 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
         startDate = currentDate.addMonths(-2)
         startTime = currentTime
 
-        if source == "ICAT":
-            data = self.initial_icat_data(startDate,currentDate)
+
+        self._db = Interface(str(source))
+        data = self.initial_database(startDate,currentDate)
 
         return data
 
-    def initial_icat_data(self,startDate,currentDate):
-        jv = ICAT()
-        self._jv = jv
-        self._ipts_list = jv.getIPTSlist()
-        jv.getIPTSs(self._ipts_list,data='meta')
-        self._meta_ipts_data = jv.get_meta_ipts_data()
-        data = self.update_icat_data(start=startDate,stop=currentDate)
+    def initial_database(self,startDate,currentDate):
+        db = self._db
+        db.initialize()
+        self._meta_ipts_data = db.get_meta_data()
+        data = self.update_db_data(start=startDate,stop=currentDate)
         return data
                     
-    def update_icat_data(self,ipts_list=None,start=None,stop=None,run_list=None):
+    def update_db_data(self,ipts_list=None,start=None,stop=None,run_list=None):
         filtered_data = self._meta_ipts_data.copy()
         
         # IPTS filter
@@ -160,22 +162,13 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
 
         print 'Filtered data 3:', filtered_data.keys()
         if filtered_data:
-            return self.icat2data(filtered_data.keys())
+            db = self._db
+            db.apply_ipts_filter(filtered_data.keys())
+            df = db.get_dataframe()
+            return df
         else:
+            # TODO return the current view instead w/ warning message of empty filter
             return
-         
-
-    def icat2data(self,ipts_list):
-        jv = self._jv
-        jv.reset_los()
-        jv.getIPTSs(ipts_list)
-        data = jv.get_los()
-        df = pandas.DataFrame.from_dict(data,orient='index')
-        df = df.reset_index()
-        df = df.rename(columns={'index': '#Scan', 'duration': 'time', 'protonCharge': 'PC/pC'})
-        col_order = ['#Scan', 'ipts', 'time', 'startTime', 'totalCounts', 'PC/pC', 'title']
-        df = df[col_order]
-        return df
 
     def csv2data( filename ):
         df = pandas.read_csv( filename)
