@@ -13,9 +13,7 @@ def procNumbers(numberList):
             if item[0] is not None:
                     result.extend(range(item[0], item[1]+1))
         else:
-            item = item
-            if item:
-                result.append(item)
+            result.extend([int(item)])
 
     result.sort()
     return result

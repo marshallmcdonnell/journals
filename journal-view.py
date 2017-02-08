@@ -127,7 +127,7 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
         jv = icat()
         self._jv = jv
         self._ipts_list = jv.getIPTSlist()
-        jv.getIPTSs(self._ipts_list[200:],data='meta')
+        jv.getIPTSs(self._ipts_list,data='meta')
         self._meta_ipts_data = jv.get_meta_ipts_data()
         data = self.update_icat_data(start=startDate,stop=currentDate)
         return data
@@ -281,7 +281,7 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
                       for r in range(self.model.rowCount()) ])
         iptsRange = ' '.join(str(ipts) for ipts in sorted(ipts_list) )
         self.iptsProxyModel.addFilterHeaders( 'ipts', iptsColumnIndex )
-        self.iptsProxyModel.addFilterFunction('ipts', lambda r,s : (r[iptsColumnIndex] in s) )
+        self.iptsProxyModel.addFilterFunction('ipts', lambda r,s : (int(r[iptsColumnIndex]) in s) )
         self.iptsLineEdit.setText(iptsRange)
         self.iptsFilterChanged()    
         self.iptsLineEdit.editingFinished.connect(self.iptsFilterChanged )
