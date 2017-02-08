@@ -2,16 +2,18 @@
 
 #import flask
 import requests 
-import xmljson, json
+import xmljson
+import json
 import lxml
-import utils 
-from decimal import Decimal
+import decimal
+
+from journals.utilities import process_numbers
 
 #uri = "http://icat.sns.gov:2080/icat-rest-ws/experiment/SNS"
 #uri = "http://icat.sns.gov:2080/icat-rest-ws/experiment/SNS/NOM"
 #uri = "http://icat.sns.gov:2080/icat-rest-ws/experiment/SNS/NOM/IPTS-"+ipts+"/meta"
 
-class icat(object):
+class ICAT(object):
 
     def __init__(self):
         self._data = None
@@ -102,15 +104,15 @@ class icat(object):
 
         if type(proposal_json) == list:
             ipts_pulled = int(proposal_json[0]['@id'].split('-')[1])
-            runs_data = utils.procNumbers(proposal_json[0]['runRange']['$'])
+            runs_data = process_numbers(proposal_json[0]['runRange']['$'])
             for i, proposal in enumerate(proposal_json[1:]):
-                runs_data += utils.procNumbers(proposal_json[0]['runRange']['$'])
+                runs_data += process_numbers(proposal_json[0]['runRange']['$'])
             startTime = [(':'.join( proposal_json[0]['createTime']['$'].split(':')[0:3])).split('.')[0]]
             for i, proposal in enumerate(proposal_json[1:]):
                 startTime += [(':'.join( proposal_json[i+1]['createTime']['$'].split(':')[0:3])).split('.')[0]]
         else:
             ipts_pulled = int(proposal_json['@id'].split('-')[1])
-            runs_data = utils.procNumbers(proposal_json['runRange']['$'])
+            runs_data = process_numbers(proposal_json['runRange']['$'])
             startTime = [(':'.join( proposal_json['createTime']['$'].split(':')[0:3])).split('.')[0]]
 
         meta_ipts_data = dict()
@@ -166,7 +168,7 @@ class icat(object):
                 elif key == 'startTime':
                     meta[key] = (':'.join( metadata[key]['$'].split(':')[0:3])).split('.')[0] 
                 elif key == 'totalCounts':
-                    meta[key] = '{:.2E}'.format(Decimal(metadata[key]['$']))
+                    meta[key] = '{:.2E}'.format(decimal.Decimal(metadata[key]['$']))
                 elif key == 'protonCharge':
                     meta[key] = float("{0:.2f}".format(metadata[key]['$'] / 1e12) )
                 else:
@@ -199,13 +201,4 @@ class icat(object):
                 print los_data[run][key], 
             print
 
-if __name__ == "__main__":
-    jv = icat()
-    ipts_list = jv.getIPTSlist()
-    jv.getIPTSs(ipts_list,data='meta')
-    #jv.getIPTSs(ipts_list)
-    #jv.getIPTS('10310')
-    #jv.getRun(str(run))
-    #jv.print_runs()
-    jv.print_los()
 

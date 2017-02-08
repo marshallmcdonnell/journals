@@ -1,4 +1,4 @@
-def procNumbers(numberList):
+def process_numbers(numberList):
     # split on commas
     result = []
     if isinstance(numberList, str):
@@ -18,3 +18,10 @@ def procNumbers(numberList):
     result.sort()
     return result
 
+def error(message):
+    print
+    print "#---------------------------------------------------------------------#"
+    print "# ERROR:", message
+    print "#---------------------------------------------------------------------#"
+    print
+    sys.exit()

@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 
 import sys, os, re
-import pandas as pd
+import pandas 
+
 from PyQt4 import QtGui, QtCore
 
-import utils
-import journal_design
-from MyCustomSortFilterProxyModel import CustomSortFilterProxyModel
-
-from journal_source import icat
+from journals.utilities import process_numbers
+from journals.view import journal_design
+from journals.model.models import CustomSortFilterProxyModel
+from journals.db.icat import ICAT
 
 databaseList = ['ICAT', 'CSV File']
 
@@ -16,15 +16,6 @@ instrumentList = { "NOMAD"  : "NOM",
                    "SNAP"   : "SNAP",
                    "POWGEN" : "PG3",
                    "VISION" : "VIS" }
-
-def error(message):
-    print
-    print "#---------------------------------------------------------------------#"
-    print "# ERROR:", message
-    print "#---------------------------------------------------------------------#"
-    print
-    sys.exit()
-
 
 class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
     def __init__(self, parent=None):
@@ -67,7 +58,7 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
             ipts_list = None
         else:
             ipts_list = str(self.iptsLineEdit.text())
-            ipts_list = utils.procNumbers(ipts_list)
+            ipts_list = process_numbers(ipts_list)
             print ipts_list
         if self.scanLineEdit.text().isEmpty():
             scan_list = None
@@ -124,7 +115,7 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
         return data
 
     def initial_icat_data(self,startDate,currentDate):
-        jv = icat()
+        jv = ICAT()
         self._jv = jv
         self._ipts_list = jv.getIPTSlist()
         jv.getIPTSs(self._ipts_list,data='meta')
@@ -179,7 +170,7 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
         jv.reset_los()
         jv.getIPTSs(ipts_list)
         data = jv.get_los()
-        df = pd.DataFrame.from_dict(data,orient='index')
+        df = pandas.DataFrame.from_dict(data,orient='index')
         df = df.reset_index()
         df = df.rename(columns={'index': '#Scan', 'duration': 'time', 'protonCharge': 'PC/pC'})
         col_order = ['#Scan', 'ipts', 'time', 'startTime', 'totalCounts', 'PC/pC', 'title']
@@ -187,7 +178,7 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
         return df
 
     def csv2data( filename ):
-        df = pd.read_csv( filename)
+        df = pandas.read_csv( filename)
         return df
 
     def setData(self, data):
@@ -287,7 +278,7 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
         self.iptsLineEdit.editingFinished.connect(self.iptsFilterChanged )
 
     def iptsFilterChanged(self):
-        self.iptsProxyModel.setFilterValues('ipts', utils.procNumbers(str(self.iptsLineEdit.text())) )
+        self.iptsProxyModel.setFilterValues('ipts', process_numbers(str(self.iptsLineEdit.text())) )
 
     def createUserSortFilter(self, parentProxyModel):
         self.userProxyModel = CustomSortFilterProxyModel()
@@ -401,7 +392,7 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
         self.scanLineEdit.editingFinished.connect(self.scanFilterChanged )
 
     def scanFilterChanged(self):
-        self.scanProxyModel.setFilterValues('scan', utils.procNumbers(str(self.scanLineEdit.text())) )
+        self.scanProxyModel.setFilterValues('scan', process_numbers(str(self.scanLineEdit.text())) )
 
         return
 
@@ -450,13 +441,3 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
                 self.listWidget.addItem(filename)
     '''
 
-def main():
-    app = QtGui.QApplication(sys.argv)
-    form = App()
-    form.show()
-    app.exec_()
-
-
-if __name__ == '__main__':
-    from argparse import ArgumentParser
-    main()
