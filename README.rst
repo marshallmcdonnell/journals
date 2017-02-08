@@ -12,10 +12,9 @@ Currently able to interact with following databases
 
     * ICAT (http://icat.sns.gov)
 
-
-=======
+-------
 Usage
-=======
+-------
 
 
 To launch the viewer, use the executable in the bin directory::
