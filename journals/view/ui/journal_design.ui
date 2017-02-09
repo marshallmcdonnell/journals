@@ -18,7 +18,7 @@
     <item row="1" column="2">
      <widget class="QGroupBox" name="filterGroupBox">
       <property name="title">
-       <string>Filters</string>
+       <string>Table Filters</string>
       </property>
       <layout class="QGridLayout" name="gridLayout_3">
        <item row="1" column="2">
@@ -70,9 +70,25 @@
     <item row="1" column="0">
      <widget class="QGroupBox" name="displayGroupBox">
       <property name="title">
-       <string>Display</string>
+       <string>Database</string>
       </property>
       <layout class="QFormLayout" name="formLayout">
+       <property name="fieldGrowthPolicy">
+        <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+       </property>
+       <item row="0" column="1">
+        <widget class="QComboBox" name="instrumentComboBox"/>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="runDatabaseLabel">
+         <property name="text">
+          <string>Run Data</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QComboBox" name="runDatabaseComboBox"/>
+       </item>
        <item row="0" column="0">
         <widget class="QLabel" name="instrumentLabel">
          <property name="text">
@@ -83,18 +99,15 @@
          </property>
         </widget>
        </item>
-       <item row="0" column="1">
-        <widget class="QComboBox" name="instrumentComboBox"/>
-       </item>
-       <item row="1" column="0">
-        <widget class="QLabel" name="databaseLabel">
+       <item row="2" column="0">
+        <widget class="QLabel" name="sampleDatabaseLabel">
          <property name="text">
-          <string>Database</string>
+          <string>Sample Data</string>
          </property>
         </widget>
        </item>
-       <item row="1" column="1">
-        <widget class="QComboBox" name="databaseComboBox"/>
+       <item row="2" column="1">
+        <widget class="QComboBox" name="sampleDatabaseComboBox"/>
        </item>
       </layout>
      </widget>
@@ -105,7 +118,7 @@
     <item row="1" column="1">
      <widget class="QGroupBox" name="databaseGroupBox">
       <property name="title">
-       <string>Database</string>
+       <string>Database/Table Filters</string>
       </property>
       <layout class="QGridLayout" name="gridLayout">
        <item row="1" column="4">

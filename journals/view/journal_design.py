@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'journal_design.ui'
 #
-# Created: Tue Feb  7 12:59:17 2017
+# Created: Thu Feb  9 08:23:36 2017
 #      by: PyQt4 UI code generator 4.10.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -60,19 +60,26 @@ class Ui_MainWindow(object):
         self.displayGroupBox = QtGui.QGroupBox(self.centralwidget)
         self.displayGroupBox.setObjectName(_fromUtf8("displayGroupBox"))
         self.formLayout = QtGui.QFormLayout(self.displayGroupBox)
+        self.formLayout.setFieldGrowthPolicy(QtGui.QFormLayout.AllNonFixedFieldsGrow)
         self.formLayout.setObjectName(_fromUtf8("formLayout"))
-        self.instrumentLabel = QtGui.QLabel(self.displayGroupBox)
-        self.instrumentLabel.setObjectName(_fromUtf8("instrumentLabel"))
-        self.formLayout.setWidget(0, QtGui.QFormLayout.LabelRole, self.instrumentLabel)
         self.instrumentComboBox = QtGui.QComboBox(self.displayGroupBox)
         self.instrumentComboBox.setObjectName(_fromUtf8("instrumentComboBox"))
         self.formLayout.setWidget(0, QtGui.QFormLayout.FieldRole, self.instrumentComboBox)
-        self.databaseLabel = QtGui.QLabel(self.displayGroupBox)
-        self.databaseLabel.setObjectName(_fromUtf8("databaseLabel"))
-        self.formLayout.setWidget(1, QtGui.QFormLayout.LabelRole, self.databaseLabel)
-        self.databaseComboBox = QtGui.QComboBox(self.displayGroupBox)
-        self.databaseComboBox.setObjectName(_fromUtf8("databaseComboBox"))
-        self.formLayout.setWidget(1, QtGui.QFormLayout.FieldRole, self.databaseComboBox)
+        self.runDatabaseLabel = QtGui.QLabel(self.displayGroupBox)
+        self.runDatabaseLabel.setObjectName(_fromUtf8("runDatabaseLabel"))
+        self.formLayout.setWidget(1, QtGui.QFormLayout.LabelRole, self.runDatabaseLabel)
+        self.runDatabaseComboBox = QtGui.QComboBox(self.displayGroupBox)
+        self.runDatabaseComboBox.setObjectName(_fromUtf8("runDatabaseComboBox"))
+        self.formLayout.setWidget(1, QtGui.QFormLayout.FieldRole, self.runDatabaseComboBox)
+        self.instrumentLabel = QtGui.QLabel(self.displayGroupBox)
+        self.instrumentLabel.setObjectName(_fromUtf8("instrumentLabel"))
+        self.formLayout.setWidget(0, QtGui.QFormLayout.LabelRole, self.instrumentLabel)
+        self.sampleDatabaseLabel = QtGui.QLabel(self.displayGroupBox)
+        self.sampleDatabaseLabel.setObjectName(_fromUtf8("sampleDatabaseLabel"))
+        self.formLayout.setWidget(2, QtGui.QFormLayout.LabelRole, self.sampleDatabaseLabel)
+        self.sampleDatabaseComboBox = QtGui.QComboBox(self.displayGroupBox)
+        self.sampleDatabaseComboBox.setObjectName(_fromUtf8("sampleDatabaseComboBox"))
+        self.formLayout.setWidget(2, QtGui.QFormLayout.FieldRole, self.sampleDatabaseComboBox)
         self.gridLayout_2.addWidget(self.displayGroupBox, 1, 0, 1, 1)
         self.treeView = QtGui.QTreeView(self.centralwidget)
         self.treeView.setObjectName(_fromUtf8("treeView"))
@@ -152,15 +159,16 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(_translate("MainWindow", "JournalView", None))
-        self.filterGroupBox.setTitle(_translate("MainWindow", "Filters", None))
+        self.filterGroupBox.setTitle(_translate("MainWindow", "Table Filters", None))
         self.titleLabel.setText(_translate("MainWindow", "Title:", None))
         self.userLabel.setText(_translate("MainWindow", "User:", None))
         self.titleCaseCheckBox.setText(_translate("MainWindow", "Case Sensitive", None))
         self.filterButton.setText(_translate("MainWindow", "Apply Filter", None))
-        self.displayGroupBox.setTitle(_translate("MainWindow", "Display", None))
+        self.displayGroupBox.setTitle(_translate("MainWindow", "Database", None))
+        self.runDatabaseLabel.setText(_translate("MainWindow", "Run Data", None))
         self.instrumentLabel.setText(_translate("MainWindow", "Instrument:", None))
-        self.databaseLabel.setText(_translate("MainWindow", "Database", None))
-        self.databaseGroupBox.setTitle(_translate("MainWindow", "Database", None))
+        self.sampleDatabaseLabel.setText(_translate("MainWindow", "Sample Data", None))
+        self.databaseGroupBox.setTitle(_translate("MainWindow", "Database/Table Filters", None))
         self.iptsLabel.setText(_translate("MainWindow", "IPTS:", None))
         self.dateRangeLabel.setText(_translate("MainWindow", "Date Range:", None))
         self.scanLabel.setText(_translate("MainWindow", "Scan ID list (ex: 1001 1005-1009 ...):", None))

@@ -11,12 +11,27 @@ from journals.model.models import CustomSortFilterProxyModel
 from journals.interfaces import Interface
 from journals.interfaces.icat import ICAT
 
-databaseList = ['ICAT', 'CSV File']
-
-instrumentList = { "NOMAD"  : "NOM",
-                   "SNAP"   : "SNAP",
-                   "POWGEN" : "PG3",
-                   "VISION" : "VIS" }
+runDatabaseList = ['ICAT', 'CSV File']
+sampleDatabaseList = ['ITEMS']
+instrumentDict = { "ARCS"    : "ARCS",
+                   "BASIS"   : "BSS",
+                   "CNCS"    : "CNCS",
+                   "CORELLI" : "CORELLI",
+                   "EQ-SANS" : "EQSANS",
+                   "FNPB"    : "FNPB",
+                   "HYSPEC"  : "HYS",
+                   "MaNDI"   : "MANDI",
+                   "NOMAD"   : "NOM",
+                   "NSE"     : "NSE",
+                   "POWGEN"  : "PG3",
+                   "LiqREF"  : "REF_L",
+                   "MagREF"  : "REF_M",
+                   "SEQUOIA" : "SEQ",
+                   "SNAP"    : "SNAP",
+                   "TOPAZ"   : "TOPAZ",
+                   "USANS"   : "USANS",
+                   "VISION"  : "VIS",
+                   "VULCAN"  : "VULCAN" }
 
 class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
     def __init__(self, parent=None):
@@ -30,7 +45,8 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
         self._meta_ipts_data = None
 
         self.createInstrumentList()
-        self.createDatabaseList()
+        self.createRunDatabaseList()
+        self.createSampleDatabaseList()
         self.createItemsModel()
         self.createSortFilters()
         self.createTable()
@@ -48,11 +64,11 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
         self.createScanIdFilter(self.dateProxyModel)
         self.createTitleSortFilter(self.scanProxyModel)
        
-        self.databaseButton.clicked.connect(self.pullFromDatabase)
+        self.databaseButton.clicked.connect(self.pullFromRunDatabase)
      
         self.childProxyModel = self.titleProxyModel
 
-    def pullFromDatabase(self):
+    def pullFromRunDatabase(self):
         start = self.dateStart.date()
         stop  = self.dateEnd.date()
         if self.iptsLineEdit.text().isEmpty():
@@ -66,30 +82,38 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
         else:
             scan_list = self.scanLineEdit.text()
 
+        print "pull from database"
         data = self.update_db_data(start=start,stop=stop,ipts_list=ipts_list,run_list=scan_list)
         self.updateModel(data)
         self.createSortFilters()
         self.createTable()
 
 
-    def createDatabaseList(self):
-        for database in databaseList:
-            self.databaseComboBox.addItem(database)
-        self.databaseComboBox.setCurrentIndex(databaseList.index('ICAT'))
-        self.databaseComboBox.setDisabled(True)
+    def createRunDatabaseList(self):
+        for database in runDatabaseList:
+            self.runDatabaseComboBox.addItem(database)
+        self.runDatabaseComboBox.setCurrentIndex(runDatabaseList.index('ICAT'))
+        self.runDatabaseComboBox.setDisabled(True)
+    def createSampleDatabaseList(self):
+        for database in sampleDatabaseList:
+            self.sampleDatabaseComboBox.addItem(database)
+        self.sampleDatabaseComboBox.setCurrentIndex(sampleDatabaseList.index('ITEMS'))
+        self.sampleDatabaseComboBox.setDisabled(True)
+
 
 
     def createInstrumentList(self):
-        for instrument in instrumentList:
+        for instrument in sorted(instrumentDict):
             self.instrumentComboBox.addItem(instrument)
-        self.instrumentComboBox.setCurrentIndex(instrumentList.keys().index('NOMAD'))
-        self.instrumentComboBox.setDisabled(True)
+        self.instrumentComboBox.setCurrentIndex(sorted(instrumentDict).index('NOMAD'))
+        self.instrumentComboBox.currentIndexChanged.connect( self.createItemsModel )
 
     def createItemsModel(self):
-        source = self.databaseComboBox.currentText()
+        instrument = instrumentDict[str(self.instrumentComboBox.currentText())]
+        source = str(self.runDatabaseComboBox.currentText())
         sourceType = self.getDataSourceType( source )
         if sourceType == "database":
-            data = self.initialDatabasePull(source)
+            data = self.initialRunDatabasePull(source,instrument)
         self.updateModel(data)
         
     def updateModel(self,data):
@@ -104,7 +128,7 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
             return "file"
         return "database"
 
-    def initialDatabasePull(self,source):
+    def initialRunDatabasePull(self,source,instrument):
        
         currentDate = QtCore.QDate.currentDate()
         currentTime = QtCore.QTime.currentTime()
@@ -113,15 +137,16 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
         startTime = currentTime
 
 
-        self._db = Interface(str(source))
-        data = self.initial_database(startDate,currentDate)
+        self._db = Interface(source,instrument)
+        data = self.initialize_database(startDate,currentDate)
 
         return data
 
-    def initial_database(self,startDate,currentDate):
+    def initialize_database(self,startDate,currentDate):
         db = self._db
         db.initialize()
         self._meta_ipts_data = db.get_meta_data()
+        print "initialize_database"
         data = self.update_db_data(start=startDate,stop=currentDate)
         return data
                     

@@ -2,8 +2,8 @@ from journals.interfaces.icat import ICAT
 
 class Interface:
 
-    def __init__(self,database):
-        interfaces = { "ICAT" : ICAT() }
+    def __init__(self,database,instrument):
+        interfaces = { "ICAT" : ICAT(instrument) }
         self.db = interfaces[database]
 
     def initialize(self):

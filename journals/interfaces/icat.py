@@ -16,15 +16,15 @@ from journals.utilities import process_numbers
 
 class ICAT(object):
 
-    def __init__(self):
+    def __init__(self, instrument):
         self._base_uri = "http://icat.sns.gov:2080/icat-rest-ws"
-        self._ipts_uri = self._base_uri + "/experiment/SNS/NOM"
-        self._run_uri = self._base_uri + "/dataset/SNS/NOM"
+        self._ipts_uri = self._base_uri + "/experiment/SNS/"+instrument
+        self._run_uri = self._base_uri + "/dataset/SNS/"+instrument
         self._data = None
         self._los_data = dict()
         self._meta_ipts_data = dict()
         self._runs = list()
-        self._ipts_list = None
+        self._ipts_list = list()
         self.key_list = ['ipts', 'duration', 'startTime', 'totalCounts', 'protonCharge', 'title']
 
     # Unit Functions
@@ -46,7 +46,10 @@ class ICAT(object):
     def _get_list_of_all_ipts(self):
         uri = self._ipts_uri 
         json_data = self._uri2xml2json(uri)
-        self._ipts_list = [ int(x['$'].split('-')[1]) for x in json_data['proposals']['proposal'] ]
+        for x in json_data['proposals']['proposal']:
+            if isinstance(x['$'], str):
+                if x['$'].startswith('IPTS'):
+                    self._ipts_list.append(int(x['$'].split('-')[1].split('.')[0])) 
 
     def _get_xml_data_tree(self,data):
         xml_tree = lxml.etree.tostring(self.data, pretty_print=True)
@@ -157,7 +160,7 @@ class ICAT(object):
 
     def initializeMetaIptsData(self):
         ipts_list = self.getListOfIPTS()
-        self.getIPTSs( ipts_list, data='meta')
+        self.getIPTSs( ipts_list[-2:], data='meta')
 
         
     def getMetaIptsData(self):
@@ -179,7 +182,7 @@ class ICAT(object):
 
 
     def getListOfIPTS(self):
-        if self._ipts_list is None:
+        if not self._ipts_list:
             self._get_list_of_all_ipts()
         return sorted(self._ipts_list)
 
@@ -195,7 +198,10 @@ class ICAT(object):
         runs = self._get_runs_from_ipts(xml_data)
         json_data = self._xml2json(xml_data)
         if data == 'all':
-            self._get_los_for_ipts(runs,json_data['proposals']['proposal'])
+            try:
+                self._get_los_for_ipts(runs,json_data['proposals']['proposal'])
+            except KeyError:
+                print ipts, json_data['proposals']
         if data == 'meta':
             self._get_meta_for_ipts(runs,json_data['proposals']['proposal'])
 
