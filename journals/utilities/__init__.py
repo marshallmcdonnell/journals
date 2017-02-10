@@ -1,3 +1,4 @@
+from __future__ import print_function
 def process_numbers(numberList):
     # split on commas
     result = []
@@ -19,9 +20,9 @@ def process_numbers(numberList):
     return result
 
 def error(message):
-    print
-    print "#---------------------------------------------------------------------#"
-    print "# ERROR:", message
-    print "#---------------------------------------------------------------------#"
-    print
+    print()
+    print("#---------------------------------------------------------------------#")
+    print("# ERROR:", message)
+    print("#---------------------------------------------------------------------#")
+    print()
     sys.exit()

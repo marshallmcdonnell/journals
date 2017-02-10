@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 #import flask
+from __future__ import print_function
 import requests 
 import xmljson
 import json
@@ -201,7 +202,7 @@ class ICAT(object):
             try:
                 self._get_los_for_ipts(runs,json_data['proposals']['proposal'])
             except KeyError:
-                print ipts, json_data['proposals']
+                print(ipts, json_data['proposals'])
         if data == 'meta':
             self._get_meta_for_ipts(runs,json_data['proposals']['proposal'])
 
@@ -222,17 +223,17 @@ class ICAT(object):
         if self._runs is None:
             self._get_runs()
         for run in self._runs:
-            print run
+            print(run)
 
     def print_los(self):
         if self._los_data is None:
-            print self._los_data, "( No data yet in los dictionary. )"
+            print(self._los_data, "( No data yet in los dictionary. )")
         los_data = self._los_data
-        print "#Scan IPTS  time   starttime         totalCounts     PC/C          title"
+        print("#Scan IPTS  time   starttime         totalCounts     PC/C          title")
         for run in sorted(los_data.keys()):
-            print run, 
+            print(run, end=' ') 
             for key in self.key_list:
-                print los_data[run][key], 
-            print
+                print(los_data[run][key], end=' ') 
+            print()
 
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
 import sys, os, re
 import pandas 
 
@@ -76,13 +77,13 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
         else:
             ipts_list = str(self.iptsLineEdit.text())
             ipts_list = process_numbers(ipts_list)
-            print ipts_list
+            print(ipts_list)
         if self.scanLineEdit.text().isEmpty():
             scan_list = None
         else:
             scan_list = self.scanLineEdit.text()
 
-        print "pull from database"
+        print("pull from database")
         data = self.update_db_data(start=start,stop=stop,ipts_list=ipts_list,run_list=scan_list)
         self.updateModel(data)
         self.createSortFilters()
@@ -146,7 +147,7 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
         db = self._db
         db.initialize()
         self._meta_ipts_data = db.get_meta_data()
-        print "initialize_database"
+        print("initialize_database")
         data = self.update_db_data(start=startDate,stop=currentDate)
         return data
                     
@@ -154,11 +155,11 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
         filtered_data = self._meta_ipts_data.copy()
         
         # IPTS filter
-        print ipts_list
-        print filtered_data.keys()
+        print(ipts_list)
+        print(filtered_data.keys())
         if ipts_list:
             filtered_data = dict( (k, filtered_data[k]) for k in ipts_list if k in filtered_data)
-        print 'Filtered data:', filtered_data.keys()
+        print('Filtered data:', filtered_data.keys())
 
         # Time filter
         if start or stop:
@@ -176,7 +177,7 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
             for k in pop_list:
                 filtered_data.pop(k,None)
                         
-        print 'Filtered data 2:', filtered_data.keys()
+        print('Filtered data 2:', filtered_data.keys())
 
         # Scan filter
         if run_list:
@@ -185,7 +186,7 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
                     if run in v['runs']:
                         filtered_data[k]
 
-        print 'Filtered data 3:', filtered_data.keys()
+        print('Filtered data 3:', filtered_data.keys())
         if filtered_data:
             db = self._db
             db.apply_ipts_filter(filtered_data.keys())
@@ -210,7 +211,7 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
         for key in self._filterHeadersList:
             index = self._getHeaderIndex( key.lower() )
             if index is None:
-                print key, " is not in header. Disabling this filter."
+                print(key, " is not in header. Disabling this filter.")
             self._filterHeaders[key] = index
         return
 
@@ -429,7 +430,7 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
         if not index.isValid():
             return
         r   = index.row()
-        print index, r
+        print(index, r)
         self._selected_scans = [ str(self.model.data(self.model.index(r,c)).toPyObject())
                                for c in range(self.model.columnCount()) ] 
 
@@ -443,7 +444,7 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
         _menu.popup(self.treeView.mapToGlobal(pos))
 
     def launchPlot(self):
-        print "Launch the plot for ", self._selected_scans, "! ....well?!?"
+        print("Launch the plot for ", self._selected_scans, "! ....well?!?")
 
 
 
