@@ -1,7 +1,4 @@
 appdirs==1.4.0
-DOM==1.7.6
-finders==0.23.12
-HLRedux==1.8.4
 lxml==3.7.2
 numpy==1.12.0
 packaging==16.8
