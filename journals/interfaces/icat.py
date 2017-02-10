@@ -140,7 +140,7 @@ class ICAT(object):
 
     def _get_meta_for_run(self,metadata):
         meta = dict.fromkeys(self.key_list)
-
+        print(meta)
         for key in self.key_list:
             if key in metadata:
                 if key == 'duration':
