@@ -1,9 +1,10 @@
-from journals.interfaces.icat import ICAT
+from journals.databases.icat.sns.interface import SnsICatInterface
+
 
 class Interface:
 
     def __init__(self,database,instrument):
-        interfaces = { "ICAT" : ICAT(instrument) }
+        interfaces = { "ICAT-SNS" : SnsICatInterface(instrument) }
         self.db = interfaces[database]
 
     def initialize(self):

@@ -7,12 +7,12 @@ import pandas
 from PyQt4 import QtGui, QtCore
 
 from journals.utilities import process_numbers
-from journals.view import journal_design
+from journals.design import journal_design
 from journals.model.models import CustomSortFilterProxyModel
-from journals.interfaces import Interface
-from journals.interfaces.icat import ICAT
+from journals.databases import Interface
+from journals.databases.icat.sns.interface import SnsICatInterface
 
-runDatabaseList = ['ICAT', 'CSV File']
+runDatabaseList = ['ICAT-SNS', 'CSV File']
 sampleDatabaseList = ['ITEMS']
 instrumentDict = { "ARCS"    : "ARCS",
                    "BASIS"   : "BSS",
@@ -34,9 +34,9 @@ instrumentDict = { "ARCS"    : "ARCS",
                    "VISION"  : "VIS",
                    "VULCAN"  : "VULCAN" }
 
-class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
+class Journals_App( QtGui.QMainWindow, journal_design.Journals_MainWindow):
     def __init__(self, parent=None):
-        super(App, self).__init__(parent)
+        super(Journals_App, self).__init__(parent)
         self.setupUi(self)
 
         self._filterHeadersList = [ 'title', 'ipts', 'starttime',  'user', 'scan' ]
@@ -93,7 +93,7 @@ class App( QtGui.QMainWindow, journal_design.Ui_MainWindow):
     def createRunDatabaseList(self):
         for database in runDatabaseList:
             self.runDatabaseComboBox.addItem(database)
-        self.runDatabaseComboBox.setCurrentIndex(runDatabaseList.index('ICAT'))
+        self.runDatabaseComboBox.setCurrentIndex(runDatabaseList.index('ICAT-SNS'))
         self.runDatabaseComboBox.setDisabled(True)
     def createSampleDatabaseList(self):
         for database in sampleDatabaseList:
