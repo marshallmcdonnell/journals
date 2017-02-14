@@ -3,72 +3,114 @@ from builtins import range
 from journals.databases.icat.sns.communicate import SnsICat
 
 
-runList = list(range(80000,80010))
 comm = SnsICat()
 
 # Serial
 #-----------
-def serial():
-    result = dict()
-    for run in runList:
-        result[run] = comm.get_run_info_lite('NOM',run)
-    return result
+def serial_run_info(runList, inst, nproc):
+    return { run : comm.get_run_info_lite(inst,run) for run in runList }
 
 # Threads
 #-----------
 import Queue
 import threading
-def queue_get_run_info(inst,run,queue):
-    queue.put(comm.get_run_info_lite(inst,run))
+import math
+def threaded_run_info(runList, inst, nthreads):
+    def worker(workerList, inst, outdict):
+        for run in workerList:
+            outdict[run] = comm.get_run_info_lite(inst,run)
 
-def launchThreads(func,queue=None,args=None):
-    threads = [threading.Thread(target=func, args=(args[0],run,queue) ) for run in args[1] ]
-    print("Starting threads")
-    for thread in threads:
-        thread.start()
-    print("Joining threads")
-    for thread in threads:
-        thread.join()
-    print("Finished threads")
+    chunksize = int(math.ceil(len(runList) / float(nthreads)))
+    threads = []
+    outs = [ dict() for i in range(nthreads) ]
+    
+    for i in range(nthreads):
+        t = threading.Thread(
+                target=worker, 
+                args=(runList[chunksize*i:chunksize*(i+1)], inst, outs[i]))
+        threads.append(t)
+        t.start()
 
-def parallelThreads():
-    q = Queue.Queue()
-    launchThreads(queue_get_run_info,queue=q,args=('NOM',runList))
+    for i in threads:
+        t.join()
 
-    result = dict()
-    for run in runList:
-        result[run] = q.get()
-    return result
-    #return [q.get() for _ in xrange(len(runList))]
+    return {k: v for out_d in outs for k, v in out_d.iteritems() }
+
+
 
 # Processes
 #-----------
 import itertools
 import multiprocessing
-def wrapper_func(q,inst,runList):
-    for run in runList:
-        q.put(comm.get_run_info_lite(inst,run))
+def mp_run_info(runList,inst, nprocs):
+    def worker(workerList, inst, out_q):
+        local_dict = dict() 
+        for run in workerList:
+            local_dict[run] = comm.get_run_info_lite(inst,run)
+        out_q.put(local_dict)
+    out_q = multiprocessing.Queue()
+    chunksize = int(math.ceil(len(runList) / float(nprocs)))
+    procs = []
 
-def parallelProcesses():
-    q = multiprocessing.Queue()
-    p = multiprocessing.Process(target=wrapper_func,args=(q,'NOM',runList,))
-    p.start()
-    p.join()
+    for i in range(nprocs):
+        p = multiprocessing.Process(
+                target=worker,
+                args=(runList[chunksize*i:chunksize*(i+1)],inst,out_q))
+        procs.append(p)
+        p.start()
 
+    result_dict = dict()
+    for i in range(nprocs):
+        result_dict.update(out_q.get())
+    
+    for p in procs:
+        p.join()
+
+    return result_dict
+        
+# Inputs
+#---------
+mode_selection = ['output','profile']
+
+mode = 'profile'
+nthreads = nprocs = 2
+inst = 'NOM'
+runList = list(range(80000,81000))
+
+if mode not in mode_selection:
+    raise Exception("Use mode from mode_selection list")
 # Output
 #---------
-serial_result = serial()
-parallel_result = parallelThreads()
-mp_result = parallelProcesses()
-print('Serial:',serial_result[80000])
-print('ParallelThread:',parallel_result[80000])
-print("ERROR in Parallel thread. Not thread safe!!!!")
-print('ParallelProcess:',parallel_result[80000])
+
+if mode == 'output':
+    serial_result   = serial_run_info(runList,inst,1)
+    threaded_result = threaded_run_info(runList,inst,nthreads)
+    mp_result       = mp_run_info(runList,inst,nprocs)
+
+    def output_result(rtype,result,key):
+        print(rtype)
+        for k in result.keys():
+            print(k,result[k][key])
+        
+
+    output_result('serial',serial_result,'protonCharge')
+    output_result('threaded',threaded_result,'protonCharge')
+    output_result('mp',mp_result,'protonCharge')
+    exit()
 
 # Profiling
 #-----------
-import timeit
-print(timeit.timeit(serial,number=1),'sec')
-print(timeit.timeit(parallelThreads,number=1),'sec')
-print(timeit.timeit(parallelProcesses,number=1),'sec')
+if mode == 'profile':
+    import timeit
+
+    def run_timeit(rtype,nodes=1):
+        func_string = str(rtype)+"_run_info(runList,inst,"+str(nodes)+")"
+        setup_string = "from __main__ import runList,inst,"+rtype+"_run_info"
+        print('%s - %d threads/procs:'%(rtype,nodes),
+              timeit.timeit(func_string,number=1,setup=setup_string),'sec')
+
+    run_timeit('serial')
+    for np in [1,2,4,8,16,32,64,128,256,512]:
+        run_timeit('threaded',nodes=np)
+        #run_timeit('mp',nodes=np)
 
