@@ -22,7 +22,7 @@ def threaded_queue_run_info(runList, inst, nthreads):
 
     chunksize = int(math.ceil(len(runList) / float(nthreads)))
     threads = []
-    outs = [ dict() for i in range(nthreads) ]
+    outs = [ {} for i in range(nthreads) ]
     
     for i in range(nthreads):
         t = threading.Thread(
@@ -31,7 +31,7 @@ def threaded_queue_run_info(runList, inst, nthreads):
         threads.append(t)
         t.start()
 
-    for i in threads:
+    for t in threads:
         t.join()
 
     return {k: v for out_d in outs for k, v in out_d.iteritems() }
@@ -85,7 +85,10 @@ mode_selection = ['output','profile']
 
 mode = 'profile'
 inst = 'NOM'
-runList = list(range(80000,80050))
+start = 80000
+end   = 80064
+interval = 1
+runList = list(range(start,end+interval,interval))
 
 if mode not in mode_selection:
     raise Exception("Use mode from mode_selection list")
@@ -93,17 +96,17 @@ if mode not in mode_selection:
 #---------
 
 if mode == 'output':
-    nthreads = nprocs = 2
-    serial_result   = serial_run_info(runList,inst,1)
-    threaded_queue_result = threaded_queue_run_info(runList,inst,nthreads)
-    threaded_pool_result = threaded_pool_run_info(runList,inst,nthreads)
-    mp_queue_result       = mp_queue_run_info(runList,inst,nprocs)
+    nthreads = nprocs = 4 
 
     def output_result(rtype,result,key):
         print(rtype)
         for k in result.keys():
             print(k,result[k][key])
-        
+    
+    serial_result   = serial_run_info(runList,inst,1)
+    threaded_queue_result = threaded_queue_run_info(runList,inst,nthreads)
+    threaded_pool_result = threaded_pool_run_info(runList,inst,nthreads)
+    mp_queue_result       = mp_queue_run_info(runList,inst,nprocs)
 
     output_result('serial',serial_result,'protonCharge')
     output_result('threaded_queue',threaded_queue_result,'protonCharge')
@@ -125,6 +128,6 @@ if mode == 'profile':
     run_timeit('serial')
     for np in [2,4,8,16]:
         run_timeit('threaded_queue',nodes=np)
-        #run_timeit('threaded_pool',nodes=np)
+        run_timeit('threaded_pool',nodes=np)
         run_timeit('mp_queue',nodes=np)
 
