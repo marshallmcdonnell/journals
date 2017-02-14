@@ -15,7 +15,7 @@ def serial_run_info(runList, inst, nproc):
 import Queue
 import threading
 import math
-def threaded_run_info(runList, inst, nthreads):
+def threaded_queue_run_info(runList, inst, nthreads):
     def worker(workerList, inst, outdict):
         for run in workerList:
             outdict[run] = comm.get_run_info_lite(inst,run)
@@ -42,7 +42,7 @@ def threaded_run_info(runList, inst, nthreads):
 #-----------
 import itertools
 import multiprocessing
-def mp_run_info(runList,inst, nprocs):
+def mp_queue_run_info(runList,inst, nprocs):
     def worker(workerList, inst, out_q):
         local_dict = dict() 
         for run in workerList:
@@ -73,9 +73,8 @@ def mp_run_info(runList,inst, nprocs):
 mode_selection = ['output','profile']
 
 mode = 'profile'
-nthreads = nprocs = 2
 inst = 'NOM'
-runList = list(range(80000,81000))
+runList = list(range(80000,80050))
 
 if mode not in mode_selection:
     raise Exception("Use mode from mode_selection list")
@@ -83,9 +82,10 @@ if mode not in mode_selection:
 #---------
 
 if mode == 'output':
+    nthreads = nprocs = 2
     serial_result   = serial_run_info(runList,inst,1)
-    threaded_result = threaded_run_info(runList,inst,nthreads)
-    mp_result       = mp_run_info(runList,inst,nprocs)
+    threaded_queue_result = threaded_queue_run_info(runList,inst,nthreads)
+    mp_queue_result       = mp_queue_run_info(runList,inst,nprocs)
 
     def output_result(rtype,result,key):
         print(rtype)
@@ -94,8 +94,8 @@ if mode == 'output':
         
 
     output_result('serial',serial_result,'protonCharge')
-    output_result('threaded',threaded_result,'protonCharge')
-    output_result('mp',mp_result,'protonCharge')
+    output_result('threaded_queue',threaded_queue_result,'protonCharge')
+    output_result('mp_queue',mp_queue_result,'protonCharge')
     exit()
 
 # Profiling
@@ -110,7 +110,7 @@ if mode == 'profile':
               timeit.timeit(func_string,number=1,setup=setup_string),'sec')
 
     run_timeit('serial')
-    for np in [1,2,4,8,16,32,64,128,256,512]:
-        run_timeit('threaded',nodes=np)
-        #run_timeit('mp',nodes=np)
+    for np in [2,4,8,16]:
+        run_timeit('threaded_queue',nodes=np)
+        run_timeit('mp_queue',nodes=np)
 
