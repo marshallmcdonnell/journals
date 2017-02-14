@@ -36,6 +36,17 @@ def threaded_queue_run_info(runList, inst, nthreads):
 
     return {k: v for out_d in outs for k, v in out_d.iteritems() }
 
+from multiprocessing.pool import ThreadPool
+def threaded_pool_run_info(runList, inst, nthreads):
+    def worker(input_tuple):
+        run, inst = input_tuple
+        return (run,comm.get_run_info_lite(inst,run))
+
+    pool = ThreadPool(processes=nthreads)
+    inputs = [ (run,inst) for run in runList]
+    result = dict(pool.map(worker, inputs))
+    return result 
+
 
 
 # Processes
@@ -85,6 +96,7 @@ if mode == 'output':
     nthreads = nprocs = 2
     serial_result   = serial_run_info(runList,inst,1)
     threaded_queue_result = threaded_queue_run_info(runList,inst,nthreads)
+    threaded_pool_result = threaded_pool_run_info(runList,inst,nthreads)
     mp_queue_result       = mp_queue_run_info(runList,inst,nprocs)
 
     def output_result(rtype,result,key):
@@ -95,6 +107,7 @@ if mode == 'output':
 
     output_result('serial',serial_result,'protonCharge')
     output_result('threaded_queue',threaded_queue_result,'protonCharge')
+    output_result('threaded_pool',threaded_pool_result,'protonCharge')
     output_result('mp_queue',mp_queue_result,'protonCharge')
     exit()
 
@@ -112,5 +125,6 @@ if mode == 'profile':
     run_timeit('serial')
     for np in [2,4,8,16]:
         run_timeit('threaded_queue',nodes=np)
+        #run_timeit('threaded_pool',nodes=np)
         run_timeit('mp_queue',nodes=np)
 
