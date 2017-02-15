@@ -21,4 +21,11 @@ To launch the viewer, use the executable in the bin directory::
 
     ./bin/journal-viewer
 
-![alt tag](https://raw.githubusercontent.com/marshallmcdonnell/journals/master/images/preview.png)
+
+
+.. class:: no-web
+
+    .. image:: https://raw.githubusercontent.com/marshallmcdonnell/journals/master/images/preview.png
+        :alt: Journals Preview
+        :width: 100%
+        :align: center
