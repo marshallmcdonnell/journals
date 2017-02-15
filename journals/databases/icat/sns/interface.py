@@ -138,7 +138,6 @@ class SnsICatInterface(object):
 
     def _get_meta_for_run(self,metadata):
         meta = dict.fromkeys(self.key_list)
-        print(meta)
         for key in self.key_list:
             if key in metadata:
                 if key == 'duration':
@@ -159,7 +158,7 @@ class SnsICatInterface(object):
 
     def initializeMetaIptsData(self):
         ipts_list = self.getListOfIPTS()
-        self.getIPTSs( ipts_list[-2:], data='meta')
+        self.getIPTSs( ipts_list, data='meta')
 
         
     def getMetaIptsData(self):
