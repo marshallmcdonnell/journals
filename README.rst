@@ -1,4 +1,4 @@
-Journals is a client-side PyQt viewer for interacting with SNS databases
+Journals: A client-side PyQt viewer for interacting with SNS databases
 ########################################################################
 
 
