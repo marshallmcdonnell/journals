@@ -1,47 +1,153 @@
 #!/usr/bin/env python
+
+'''
+Original author: Ricardo Ferraz Leal (ORNL)
+Current version by: Marshall McDonnell
+'''
+
+
 from __future__ import print_function
-import requests 
-import xmljson
 import json
-import lxml
 import decimal
 import pandas
 
-from journals.utilities import process_numbers
-
-#uri = "http://icat.sns.gov:2080/icat-rest-ws/experiment/SNS"
-#uri = "http://icat.sns.gov:2080/icat-rest-ws/experiment/SNS/NOM"
-#uri = "http://icat.sns.gov:2080/icat-rest-ws/experiment/SNS/NOM/IPTS-"+ipts+"/meta"
+from journals.utilities import parse_datetime
+from journals.databases.icat.sns.communicate import SnsICat 
 
 class SnsICatInterface(object):
 
-    def __init__(self, instrument):
-        self._base_uri = "http://icat.sns.gov:2080/icat-rest-ws"
-        self._ipts_uri = self._base_uri + "/experiment/SNS/"+instrument
-        self._run_uri = self._base_uri + "/dataset/SNS/"+instrument
-        self._data = None
-        self._los_data = dict()
-        self._meta_ipts_data = dict()
-        self._runs = list()
-        self._ipts_list = list()
+    def __init__(self):
+        self.icat = SnsICat()
         self.key_list = ['ipts', 'duration', 'startTime', 'totalCounts', 'protonCharge', 'title']
+
+    # Utils
+    #------
+    @staticmethod
+    def _hyphen_range(s):
+        """ Takes a range in form of "a-b" and generate a list of numbers between a and b inclusive.
+        Also accepts comma separated ranges like "a-b,c-d,f" will build a list which will include
+        Numbers from a to b, a to d and f"""
+        s = "".join(s.split())  # removes white space
+        r = set()
+        for x in s.split(','):
+            t = x.split('-')
+            if len(t) not in [1, 2]:
+                logger.error("hash_range is given its arguement as " + s + " which seems not correctly formated.")
+            r.add(int(t[0])) if len(t) == 1 else r.update(set(range(int(t[0]), int(t[1]) + 1)))
+        l = list(r)
+        l.sort()
+        l_in_str = ','.join(str(x) for x in l)
+        return l_in_str
+
+    def _substitute_keys_in_dictionary(self,obj,old_key,new_key):
+        if isinstance(obj, dict):
+            if old_key in obj:
+                obj[new_key]=obj.pop(old_key)
+            return {k: self._substitute_keys_in_dictionary(v,old_key,new_key) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [self._substitute_keys_in_dictionary(elem,old_key,new_key) for elem in obj]
+
+    def _convert_to_datetime(self,obj,key):
+        if isinstance(obj, dict):
+            if key in obj:
+                obj[key] = parse_datetime(obj[key])
+            return {k: self._convert_to_datetime(v,key) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [self._convert_to_datetime(elem,key) for elem in obj]
+
+    # Functions
+    #----------
+    def get_instruments(self):
+        json_data = self.icat.get_instruments()
+        if json_data is not None and 'instrument' in json_data:
+            return json_data['instrument']
+        else:
+            raise Exception("ICAT did not return the expected result....")
+
+    def get_experiments(self,instrument):
+        json_data = self.icat.get_experiments(instrument)
+        return json_data
+
+    def get_experiments_meta(self, instrument):
+        json_data = self.icat.get_experiments_meta(instrument)
+        if json_data is not None and 'proposal' in json_data:
+            json_data = json_data['proposal']
+        else:
+            raise Exception("ICAT did not return the expected result....")
+        self._substitute_keys_in_dictionary(json_data,'@id','id')
+        self._convert_to_datetime(json_data,'createTime')
+        return json_data
+
+    def get_experiments_id_and_title(self,instrument):
+        json_data = self.get_experiments_meta(instrument)
+        json_data = { (int(entry['id'].split('-')[1]),  entry['title']) for entry in json_data }
+        return json_data
+ 
+    def get_experiments_id_and_date(self,instrument):
+        json_data = self.get_experiments_meta(instrument)
+        json_data = { (int(entry['id'].split('-')[1]),  entry['createTime']) for entry in json_data }
+        return json_data
+
+    def get_runs_all(self,instrument,experiment):
+        json_data = self.icat.get_runs_all(instrument,experiment)
+        self._substitute_keys_in_dictionary(json_data,'@id','id')
+        self._convert_to_datetime(json_data,'createTime')
+        self._convert_to_datetime(json_data,'startTime')
+        self._convert_to_datetime(json_data,'endTime')
+        return json_data
+           
+
+    def get_runs(self,instrument,experiment):
+        raw_ranges = self.icat.get_run_ranges(instrument,experiment)
+        if raw_ranges is not None and 'runRange' in raw_ranges:
+            ranges = self._hyphen_range(raw_ranges["runRange"])
+        else:
+            raise Exception("ICAT did not return the expected result....")
+        return json.loads( "[" + ranges + "]" ) 
+
+    def get_runs_meta(self,instrument,experiment):
+        raw_ranges = self.icat.get_run_ranges_meta(instrument,experiment)
+
+        # TODO - Need to change to handle IPTS that return mutliple proposals as a list of dictionaries
+        if type(raw_ranges['proposal']) ==  list:
+            #ranges = ','.join([ self._hyphen_range(item['runRange']) for item in raw_ranges['proposal'] ])
+            raw_ranges['proposal'] = raw_ranges['proposal'][0]
+        ranges = self._hyphen_range(raw_ranges['proposal']['runRange'])
+        raw_ranges['proposal']['runRange'] = ranges
+        self._substitute_keys_in_dictionary(raw_ranges,'@id','id')
+        self._convert_to_datetime(raw_ranges,'createTime')
+        return raw_ranges
+
+           
+    def get_run_number_and_title(self,instrument,experiment):
+        json_data = self.icat.get_runs_all(instrument,experiment)
+        if json_data is not None and 'proposal' in json_data:
+            try: 
+                json_data = json_data['proposal']['runs']['run']
+            except:
+                raise Exception("ICAT did not return the expected result....")
+        else:
+            raise Exception("ICAT did not return the expected result....")
+        
+        self._substitute_keys_in_dictionary(json_data,'@id','id')
+        data_list = list()
+        for entry in json_data:
+            title = None
+            if 'title' in entry:
+                title = entry['title']
+            data_list.append([entry['id'],title])
+        json_data_subset = {"data" : data_list}
+        return json_data_subset
+
+    def get_user_experiments(self,uid):
+        json_data = self.icat.get_user_experiments(uid)
+        if json_data is not None and 'proposals' in json_data:
+            return json_data['proposals']
+        else:
+            raise Exception("ICAT did not return the expected result....")
 
     # Unit Functions
     #---------------
-
-    def _uri2xml(self,uri):
-        xml_data = requests.get(uri)
-        xml_data = lxml.etree.XML(xml_data.content)
-        return xml_data
-
-    def _xml2json(self,xml_data):
-        return xmljson.badgerfish.data(xml_data)
-
-    def _uri2xml2json(self,uri):
-        xml_data  = self._uri2xml(uri)
-        json_data = self._xml2json(xml_data)
-        return json_data
-
     def _get_list_of_all_ipts(self):
         uri = self._ipts_uri 
         json_data = self._uri2xml2json(uri)
@@ -49,10 +155,6 @@ class SnsICatInterface(object):
             if isinstance(x['$'], str):
                 if x['$'].startswith('IPTS'):
                     self._ipts_list.append(int(x['$'].split('-')[1].split('.')[0])) 
-
-    def _get_xml_data_tree(self,data):
-        xml_tree = lxml.etree.tostring(self.data, pretty_print=True)
-        return xml_tree
 
     def _get_runs_from_ipts(self,data):
         return [ element.get('id') for element in data.iter() if element.tag == 'run' ]

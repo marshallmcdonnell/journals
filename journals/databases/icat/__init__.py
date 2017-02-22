@@ -11,6 +11,9 @@ class ICat(object):
         pass
 
     def _request(self,url_suffix=''):
-        request = self.url_prefix + url_suffix
-        response = requests.get(request, headers=HEADERS)
-        return response.json()
+        try:
+            request = self.url_prefix + url_suffix
+            response = requests.get(request, headers=HEADERS)
+            return response.json()
+        except Exception as e:
+            raise Exception(e)

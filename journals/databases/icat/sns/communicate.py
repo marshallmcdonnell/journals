@@ -2,14 +2,14 @@
 
 '''
 Original author: Ricardo Ferraz Leal (ORNL)
-Extened by: Marshall McDonnell
+Current version by: Marshall McDonnell
 '''
 
-#import flask
 from __future__ import print_function
 import json
 
 from journals.databases.icat import ICat
+
 
 class SnsICat(ICat):
 
@@ -35,7 +35,7 @@ class SnsICat(ICat):
     def get_run_ranges_meta(self,instrument,experiment):
         return self._request("/icat-rest-ws/experiment/SNS/%s/%s/meta"%(instrument,experiment))
 
-    def get_run_ranges_all(self,instrument,experiment):
+    def get_runs_all(self,instrument,experiment):
         return self._request("/icat-rest-ws/experiment/SNS/%s/%s/all"%(instrument,experiment))
 
     def get_run_info(self,instrument,run_number):
@@ -56,4 +56,4 @@ class SnsICat(ICat):
 
 if __name__=="__main__":
     comm = SnsICat()
-    comm.get_instruments()
+    print(comm.get_instruments())

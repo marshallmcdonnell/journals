@@ -12,7 +12,6 @@ def serial_run_info(runList, inst, nproc):
 
 # Threads
 #-----------
-import Queue
 import threading
 import math
 def threaded_queue_run_info(runList, inst, nthreads):
@@ -36,6 +35,8 @@ def threaded_queue_run_info(runList, inst, nthreads):
 
     return {k: v for out_d in outs for k, v in out_d.iteritems() }
 
+# Thread Pool
+#-----------
 from multiprocessing.pool import ThreadPool
 def threaded_pool_run_info(runList, inst, nthreads):
     def worker(input_tuple):
@@ -53,6 +54,7 @@ def threaded_pool_run_info(runList, inst, nthreads):
 #-----------
 import itertools
 import multiprocessing
+import Queue
 def mp_queue_run_info(runList,inst, nprocs):
     def worker(workerList, inst, out_q):
         local_dict = dict() 

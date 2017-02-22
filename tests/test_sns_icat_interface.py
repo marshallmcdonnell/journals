@@ -2,12 +2,12 @@
 
 import unittest
 
-from journals.databases.icat.sns.test_interface import SnsICatInterface
+from journals.databases.icat.sns.interface import SnsICatInterface
 
 class TestSnsInterface(unittest.TestCase):
+    conn = SnsICatInterface()
 
     def test_instruments(self):
-        conn = SnsICatInterface()
         target =    [u'ARCS',
                      u'BSS',
                      u'CNCS',
@@ -28,7 +28,12 @@ class TestSnsInterface(unittest.TestCase):
                      u'USANS',
                      u'VIS',
                      u'VULCAN']
-        self.assertEqual(conn.get_instruments(),target)
+        self.assertEqual(self.conn.get_instruments(),target)
+
+    def test_experiments_meta(self):
+        print(self.conn.get_experiments_meta('NOM'))
+        
+
        
 if __name__ == '__main__':
     unittest.main() 
